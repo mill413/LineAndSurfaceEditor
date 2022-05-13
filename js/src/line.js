@@ -21,6 +21,8 @@ const curves = {
     trdPolyline: null,
 
     uniformBSpline: null,
+    selectedUBSpline:null,
+
     nonUniformBSpline: null
 }
 
@@ -57,7 +59,7 @@ const ColorParams = {
     nonUniformBSpline: "#cc33e1"
 }
 
-let selectedPoint = -1
+let selectedPoint = 0
 
 main()
 
@@ -76,6 +78,8 @@ function main() {
     curves.trdPolyline = new FKPolyline(curves.sndPolyline.exportPoints())
 
     curves.uniformBSpline = new FKBSpline(controlPointsPositions, ColorParams.uniformBSpline, 3, "uniform")
+    curves.selectedUBSpline = new FKLine(curves.uniformBSpline.getSegmentByIndex(selectedPoint,controlPointsPositions),"#000000")
+
     curves.nonUniformBSpline = new FKBSpline(controlPointsPositions, ColorParams.nonUniformBSpline, 3, "nonUniform")
 
     for (const curvesKey in curves) {
@@ -96,36 +100,6 @@ function main() {
 }
 
 function render() {
-    curves.polyline.curve.visible = GUIParams.polygon
-    curves.polyline.curve.material.color.set(ColorParams.polygon)
-
-    curves.fstPolyline.updatePolyline(controlPointsPositions, GUIParams.param)
-    curves.fstPolyline.update()
-    curves.fstPolyline.curve.visible = !(GUIParams.param === 0 || GUIParams.param === 1) && GUIParams.fst
-
-    curves.sndPolyline.updatePolyline(curves.fstPolyline.exportPoints(), GUIParams.param)
-    curves.sndPolyline.update()
-    curves.sndPolyline.curve.visible = !(GUIParams.param === 0 || GUIParams.param === 1) && GUIParams.snd
-
-    curves.trdPolyline.updatePolyline(curves.sndPolyline.exportPoints(), GUIParams.param)
-    curves.trdPolyline.update()
-    curves.trdPolyline.curve.visible = !(GUIParams.param === 0 || GUIParams.param === 1) && GUIParams.trd
-
-    curves.bezier.curve.visible = GUIParams.bezierCurve
-    curves.bezier.curve.material.color.set(ColorParams.bezier)
-    curves.bezier.getPointByParam(GUIParams.param)
-    fk.add(curves.bezier.paramObj)
-
-    curves.uniformBSpline.curve.visible = GUIParams.uniformBSplineCurve
-    curves.uniformBSpline.curve.material.color.set(ColorParams.uniformBSpline)
-    curves.uniformBSpline.getPointByParam(GUIParams.param)
-    fk.add(curves.uniformBSpline.paramObj)
-
-    curves.nonUniformBSpline.curve.visible = GUIParams.nonUniformBSplineCurve
-    curves.nonUniformBSpline.curve.material.color.set(ColorParams.nonUniformBSpline)
-    curves.nonUniformBSpline.getPointByParam(GUIParams.param)
-    fk.add(curves.nonUniformBSpline.paramObj)
-
     // 控制点序号文字显示
     pointSprites.forEach(ps => {
         fk.remove(ps)
@@ -141,7 +115,54 @@ function render() {
         ps.position.set(controlPointsPositions[ind].x, controlPointsPositions[ind].y, controlPointsPositions[ind].z)
     })
 
+    // 获取选中的控制点下标
+    if (fk.transformControl.object !== undefined) {
+        controlPointsPositions.forEach((cp, ind) => {
+            if (cp === fk.transformControl.object.position) {
+                selectedPoint = ind
+            }
+        })
+    } else {
+        selectedPoint = -1
+    }
 
+    curves.polyline.curve.visible = GUIParams.polygon
+    curves.polyline.curve.material.color.set(ColorParams.polygon)
+
+    curves.bezier.curve.visible = GUIParams.bezierCurve
+    curves.bezier.curve.material.color.set(ColorParams.bezier)
+    curves.bezier.getPointByParam(GUIParams.param)
+    fk.add(curves.bezier.paramObj)
+
+    curves.fstPolyline.updatePolyline(controlPointsPositions, GUIParams.param)
+    curves.fstPolyline.update()
+    curves.fstPolyline.curve.visible = !(GUIParams.param === 0 || GUIParams.param === 1) && GUIParams.fst
+
+    curves.sndPolyline.updatePolyline(curves.fstPolyline.exportPoints(), GUIParams.param)
+    curves.sndPolyline.update()
+    curves.sndPolyline.curve.visible = !(GUIParams.param === 0 || GUIParams.param === 1) && GUIParams.snd
+
+    curves.trdPolyline.updatePolyline(curves.sndPolyline.exportPoints(), GUIParams.param)
+    curves.trdPolyline.update()
+    curves.trdPolyline.curve.visible = !(GUIParams.param === 0 || GUIParams.param === 1) && GUIParams.trd
+
+    curves.uniformBSpline.curve.visible = GUIParams.uniformBSplineCurve
+    curves.uniformBSpline.curve.material.color.set(ColorParams.uniformBSpline)
+    curves.uniformBSpline.getPointByParam(GUIParams.param)
+    fk.add(curves.uniformBSpline.paramObj)
+
+    if (selectedPoint !== -1){
+        curves.selectedUBSpline.updateSelected(selectedPoint,controlPointsPositions)
+        curves.selectedUBSpline.update()
+        fk.add(curves.selectedUBSpline)
+    }else {
+        fk.remove(curves.selectedUBSpline)
+    }
+
+    curves.nonUniformBSpline.curve.visible = GUIParams.nonUniformBSplineCurve
+    curves.nonUniformBSpline.curve.material.color.set(ColorParams.nonUniformBSpline)
+    curves.nonUniformBSpline.getPointByParam(GUIParams.param)
+    fk.add(curves.nonUniformBSpline.paramObj)
 }
 
 function initialControlPoints() {
@@ -171,6 +192,41 @@ function load(new_positions) {
     }
 
     updateCurve()
+}
+
+function updateCurve() {
+    for (const k in curves) {
+        const curve = curves[k]
+        if (curve != null) {
+            switch (k) {
+                case "bezier": {
+                    curve.updateBezier(controlPointsPositions)
+                    break
+                }
+                case "uniformBSpline": {
+                    curve.updateBSpline(controlPointsPositions, "uniform")
+                    break
+                }
+                case "nonUniformBSpline": {
+                    curve.updateBSpline(controlPointsPositions, "nonUniform")
+                    break
+                }
+                case "fstPolyline": {
+                    curve.updatePolyline(controlPointsPositions, GUIParams.param)
+                    break
+                }
+                case "sndPolyline": {
+                    curve.updatePolyline(curves.fstPolyline.exportPoints(), GUIParams.param)
+                    break
+                }
+                case "trdPolyline": {
+                    curve.updatePolyline(curves.sndPolyline.exportPoints(), GUIParams.param)
+                    break
+                }
+            }
+            curve.update()
+        }
+    }
 }
 
 //region GUI
@@ -253,37 +309,4 @@ function exportPoints() {
 
 //endregion
 
-function updateCurve() {
-    for (const k in curves) {
-        const curve = curves[k]
-        if (curve != null) {
-            switch (k) {
-                case "bezier": {
-                    curve.updateBezier(controlPointsPositions)
-                    break
-                }
-                case "uniformBSpline": {
-                    curve.updateBSpline(controlPointsPositions, "uniform")
-                    break
-                }
-                case "nonUniformBSpline": {
-                    curve.updateBSpline(controlPointsPositions, "nonUniform")
-                    break
-                }
-                case "fstPolyline": {
-                    curve.updatePolyline(controlPointsPositions, GUIParams.param)
-                    break
-                }
-                case "sndPolyline": {
-                    curve.updatePolyline(curves.fstPolyline.exportPoints(), GUIParams.param)
-                    break
-                }
-                case "trdPolyline": {
-                    curve.updatePolyline(curves.sndPolyline.exportPoints(), GUIParams.param)
-                    break
-                }
-            }
-            curve.update()
-        }
-    }
-}
+

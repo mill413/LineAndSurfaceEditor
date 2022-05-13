@@ -7,6 +7,9 @@ class FKBSpline extends FKLine {
         this.degree = degree
         this.order = degree + 1
         this.btype = type
+
+        this.selected = this.getSegmentByIndex(0,controlPoints)
+        this.selectedLine = new FKLine(this.selected)
     }
 
     //TODO-无法使用this.btype
@@ -14,6 +17,25 @@ class FKBSpline extends FKLine {
         this.points.length = 0
         getBSplinePoints(controlPoints, type, this.degree).forEach(pts => {
             this.points.push(pts)
+        })
+    }
+
+    getSegmentByIndex(selected, controlPoints) {
+        let segment = []
+        if (selected !== -1) {
+            for (let i = selected; i < Math.min(selected + degree + 1, controlPointsCount); i++) {
+                for (let t = knot[i]; t <= knot[i + 1]; t += (knot[i + 1] - knot[i]) / division) {
+                    segment.push(calculateBSplinePoint(controlPoints, t))
+                }
+            }
+        }
+        return segment
+    }
+
+    updateSelected(selected,controlPoints){
+        this.selected.length = 0
+        this.getSegmentByIndex(selected,controlPoints).forEach(pts=>{
+            this.selected.push(pts)
         })
     }
 }
