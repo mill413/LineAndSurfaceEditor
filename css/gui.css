@@ -1,0 +1,26 @@
+.lil-gui {
+    border-radius: 10px;
+    --background-color: #9898a9;
+    --text-color: #ffffff;
+    --title-background-color: #817479;
+    --title-text-color: #ffffff;
+    --widget-color: #6a5c5c;
+    --hover-color: #8b7e7e;
+    --focus-color: #aec6bc;
+    --number-color: #07aacf;
+    --string-color: #f1ff94;
+    --font-size: 14px;
+    --input-font-size: 13px;
+    --padding: 6px;
+    --spacing: 5px;
+    --widget-height: 23px;
+    --name-width: 50%;
+    --folder-indent: 12px;
+    --widget-padding: 3px 3px 5px 10px;
+    --widget-border-radius: 20px;
+    --color-input-width: 50%;
+}
+
+.globalGUI{
+    left: 15px;
+}
