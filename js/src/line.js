@@ -14,7 +14,6 @@ let pointSprites = []
 
 const curves = {
     polyline: null,
-
     bezier: null,
 
     uniformBSpline: null,
@@ -28,11 +27,12 @@ const gui = new GUI()
 let GUIPreset = {}
 const GUIParams = {
     polygon: true,
-    bezierCurve: true,
-    paramLines: true,
+    bezierCurve: false,
+    paramLines: false,
     uniformBSplineCurve: true,
-    nonUniformBSplineCurve: true,
-    param: 0.2,
+    uniKnot:true,
+    nonUniformBSplineCurve: false,
+    param: 0,
     addPoint: addPoint,
     removePoint: removePoint,
     exportControlPoints: exportPoints,
@@ -55,7 +55,9 @@ const ColorParams = {
     nonUniformBSpline: "#cc33e1"
 }
 
-let selectedPoint = 0
+let knotSprite = []
+let knotsObj = []
+let selectedPoint = -1
 
 main()
 
@@ -75,6 +77,7 @@ function main() {
     }
 
     curves.uniformBSpline = new FKBSpline(controlPointsPositions, ColorParams.uniformBSpline, 3, "uniform")
+    curves.selectedUBSpline = new FKLine(curves.uniformBSpline.getSegment(selectedPoint, controlPointsPositions), "#000000")
 
     curves.nonUniformBSpline = new FKBSpline(controlPointsPositions, ColorParams.nonUniformBSpline, 3, "nonUniform")
 
@@ -86,7 +89,6 @@ function main() {
     polylines.forEach(line => {
         fk.add(line.curve)
     })
-    // fk.add(polylines[0].curve)
 
     load([
         new THREE.Vector3(402.3456856807021, -359.44473917583423, 54.353753188060395),
@@ -134,6 +136,7 @@ function render() {
     curves.polyline.curve.visible = GUIParams.polygon
     curves.polyline.curve.material.color.set(ColorParams.polygon)
 
+
     //region bezier
     curves.bezier.curve.visible = GUIParams.bezierCurve
     curves.bezier.curve.material.color.set(ColorParams.bezier)
@@ -148,11 +151,48 @@ function render() {
     })
     //endregion
 
+
     curves.uniformBSpline.curve.visible = GUIParams.uniformBSplineCurve
     curves.uniformBSpline.curve.material.color.set(ColorParams.uniformBSpline)
     curves.uniformBSpline.getPointByParam(GUIParams.param)
     fk.add(curves.uniformBSpline.paramObj)
+
+    //节点显示
+    let knots = curves.uniformBSpline.getKnots(controlPointsPositions)
+    knotSprite.forEach(ks => {
+        fk.remove(ks)
+    })
+    knotSprite.length = 0
+    for (let i = 0;i<knots.length;i++){
+        let ks = makeTextSprite("K"+(i+1).toString(),
+            {fontsize:50})
+        fk.add(ks)
+        knotSprite.push(ks)
+    }
+    knotSprite.forEach((ks,ind)=>{
+        let ksp = curves.uniformBSpline.getPoint(knots[ind])
+        ks.position.set(ksp.x,ksp.y,ksp.z)
+        ks.visible = GUIParams.uniformBSplineCurve && GUIParams.uniKnot
+    })
+    const paramPointMaterial = new THREE.MeshLambertMaterial({color: 0xffffff})
+    const paramPointGeometry = new THREE.OctahedronGeometry(15)
+    knotsObj.forEach(ko => fk.remove(ko))
+    knotsObj.length=0
+    knots.forEach(k => {
+        let obj = new THREE.Mesh(paramPointGeometry, paramPointMaterial)
+        obj.position.copy(curves.uniformBSpline.getPoint(k))
+        obj.material.color.set(curves.uniformBSpline.material.color)
+        obj.visible = GUIParams.uniformBSplineCurve && GUIParams.uniKnot
+        fk.add(obj)
+        knotsObj.push(obj)
+    })
+
     //TODO-局部控制显示
+    curves.selectedUBSpline.points.length = 0
+    curves.uniformBSpline.getSegment(selectedPoint,controlPointsPositions).forEach(pts=>{
+        curves.selectedUBSpline.points.push(pts)
+    })
+    curves.selectedUBSpline.curve.visible = !(selectedPoint === -1)
 
 
     curves.nonUniformBSpline.curve.visible = GUIParams.nonUniformBSplineCurve
@@ -194,7 +234,6 @@ function updateCurve() {
     polylines.forEach((line, index) => {
         if (index === 0) line.updatePolyline(controlPointsPositions, GUIParams.param)
         else line.updatePolyline(polylines[index - 1].exportPoints(), GUIParams.param)
-
         line.update()
     })
 
@@ -208,6 +247,13 @@ function updateCurve() {
                 }
                 case "uniformBSpline": {
                     curve.updateBSpline(controlPointsPositions)
+                    break
+                }
+                case "selectedUBSpline": {
+                    curve.points.length = 0
+                    curves.uniformBSpline.getSegment(selectedPoint,controlPointsPositions).forEach(pts=>{
+                        curve.points.push(pts)
+                    })
                     break
                 }
                 case "nonUniformBSpline": {
@@ -245,6 +291,7 @@ function setGUI() {
     const uniformFolder = bSplineFolder.addFolder("均匀b样条曲线")
     uniformFolder.add(GUIParams, "uniformBSplineCurve").name("均匀b样条曲线").onChange(fk.render)
     uniformFolder.addColor(ColorParams, "uniformBSpline").name("颜色").onChange(fk.render)
+    uniformFolder.add(GUIParams,"uniKnot").name("节点").onChange(fk.render)
 
     const nonUniformFolder = bSplineFolder.addFolder("准均匀b样条曲线")
     nonUniformFolder.add(GUIParams, "nonUniformBSplineCurve").name("准均匀b样条曲线").onChange(fk.render)

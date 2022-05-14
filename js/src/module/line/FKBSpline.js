@@ -1,5 +1,5 @@
 import {FKLine} from "./FKLine.js"
-import {Vector3} from "three";
+import {Vector3} from "three"
 
 class FKBSpline extends FKLine {
     constructor(controlPoints, color = Math.random() * 0xffffff, degree = 3, type) {
@@ -7,6 +7,8 @@ class FKBSpline extends FKLine {
         this.degree = degree
         this.order = degree + 1
         this.btype = type
+
+        this.knotObj = []
     }
 
     updateBSpline(controlPoints) {
@@ -15,12 +17,23 @@ class FKBSpline extends FKLine {
             this.points.push(pts)
         })
     }
-}
 
-let degree = 3 // 次数
-let order = 4 // 阶数
-let knot = [] // 节点向量
-let controlPointsCount = 4 // 控制点数
+    getKnots(controlPoints) {
+        return generateKnots(this.btype, controlPoints.length, this.degree)
+    }
+
+    getSegment(selected, controlPoints) {
+        if (selected === -1) selected = 0
+        let knot = this.getKnots(controlPoints)
+        let segment = []
+        for (let i = selected; i < selected + this.order + 1; i++) {
+            for (let j = knot[i]; j < knot[i + 1]; j += (knot[i + 1] - knot[i]) / 200) {
+                segment.push(this.getPoint(j))
+            }
+        }
+        return segment
+    }
+}
 
 let division = 200
 
@@ -28,21 +41,19 @@ let division = 200
  * 获取b样条曲线采样点
  * @param controlPoints 控制点列表
  * @param type b样条类型：1.uniform - 均匀b样条（默认） 2.nonUniform - 准均匀b样条
- * @param deg b样条曲线次数，默认为3次
+ * @param degree b样条曲线次数，默认为3次
  * @returns {[]} b样条曲线采样点列表
  */
-function getBSplinePoints(controlPoints, type, deg = 3) {
+function getBSplinePoints(controlPoints, type, degree = 3) {
     const bSplinePoints = []
 
-    controlPointsCount = controlPoints.length
-    degree = deg
-    order = degree + 1
+    const controlPointsCount = controlPoints.length
 
-    generateKnots(type)
+    const knot = generateKnots(type, controlPointsCount, degree)
 
     for (let i = degree; i <= controlPointsCount - 1; i++) {
         for (let t = knot[i]; t <= knot[i + 1]; t += (knot[i + 1] - knot[i]) / division) {
-            bSplinePoints.push(calculateBSplinePoint(controlPoints, t))
+            bSplinePoints.push(calculateBSplinePoint(controlPoints, t, degree, knot))
         }
     }
 
@@ -52,8 +63,11 @@ function getBSplinePoints(controlPoints, type, deg = 3) {
 /**
  * 生成节点向量
  * @param type b样条类型：1.uniform - 均匀b样条（默认） 2.nonUniform - 准均匀b样条
+ * @param controlPointsCount
+ * @param degree
  */
-function generateKnots(type) {
+function generateKnots(type, controlPointsCount, degree) {
+    let knot = []
     let knotCount = controlPointsCount + degree + 1
     knot.length = 0
     switch (type) {
@@ -85,18 +99,21 @@ function generateKnots(type) {
             console.log("bSpline type error!")
         }
     }
+    return knot
 }
 
 /**
  * 计算参数u对应的b样条曲线上的点
  * @param controlPoints 控制点列表
  * @param u 参数
+ * @param degree
+ * @param knot
  * @returns {Vector3} 曲线上的点
  */
-function calculateBSplinePoint(controlPoints, u) {
+function calculateBSplinePoint(controlPoints, u, degree, knot) {
     let x = 0, y = 0, z = 0
     controlPoints.forEach((pts, ind) => {
-        let baseNum = basis(ind, degree, u)
+        let baseNum = basis(ind, degree, u, knot)
         x += pts.x * baseNum
         y += pts.y * baseNum
         z += pts.z * baseNum
@@ -109,9 +126,10 @@ function calculateBSplinePoint(controlPoints, u) {
  * @param i
  * @param k
  * @param t
+ * @param knot
  * @returns {number}
  */
-function basis(i, k, t) {
+function basis(i, k, t, knot) {
     let res = 0
 
     if (k === 0) {
@@ -132,7 +150,7 @@ function basis(i, k, t) {
             if (denominator === 0) b = 0
             else b = (knot[i + k + 1] - t) / denominator
 
-            res = a * basis(i, k - 1, t) + b * basis(i + 1, k - 1, t)
+            res = a * basis(i, k - 1, t, knot) + b * basis(i + 1, k - 1, t, knot)
         }
     }
     return res

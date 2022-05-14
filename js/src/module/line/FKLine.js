@@ -21,11 +21,6 @@ class FKLine extends CatmullRomCurve3{
         this.paramObj = new THREE.Mesh(paramPointGeometry, paramPointMaterial)
     }
 
-
-    // addTo(scene){
-    //     scene.add(this.curve)
-    // }
-
     update(){
         const tempPoint = new THREE.Vector3()
         const mesh = this.curve
