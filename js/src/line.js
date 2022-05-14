@@ -70,7 +70,7 @@ function main() {
     curves.bezier = new FKBezierLine(controlPointsPositions, ColorParams.bezier)
 
     polylines[0] = new FKPolyline(controlPointsPositions)
-    for (let i = 1; i < pointsCount-1; i++) {
+    for (let i = 1; i < pointsCount - 1; i++) {
         polylines.push(new FKPolyline(polylines[i - 1].exportPoints()))
     }
 
@@ -260,10 +260,10 @@ function addPoint() {
 
     controlPointsPositions.push(fk.addControlHelper().position)
 
-    while (polylines.length < pointsCount - 2){
-        let new_pl = new FKPolyline(polylines[polylines.length-1].exportPoints())
+    while (polylines.length < pointsCount - 2) {
+        let new_pl = new FKPolyline(polylines[polylines.length - 1].exportPoints())
         fk.add(new_pl.curve)
-        new_pl.updatePolyline(polylines[polylines.length-1].exportPoints(),GUIParams.param)
+        new_pl.updatePolyline(polylines[polylines.length - 1].exportPoints(), GUIParams.param)
         polylines.push(new_pl)
     }
     updateCurve()
