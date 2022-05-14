@@ -16,27 +16,23 @@ const curves = {
     polyline: null,
 
     bezier: null,
-    fstPolyline: null,
-    sndPolyline: null,
-    trdPolyline: null,
 
     uniformBSpline: null,
-    selectedUBSpline:null,
+    selectedUBSpline: null,
 
     nonUniformBSpline: null
 }
+let polylines = []
 
 const gui = new GUI()
 let GUIPreset = {}
 const GUIParams = {
     polygon: true,
     bezierCurve: true,
-    fst:false,
-    snd:false,
-    trd:false,
+    paramLines: true,
     uniformBSplineCurve: true,
     nonUniformBSplineCurve: true,
-    param: 0,
+    param: 0.2,
     addPoint: addPoint,
     removePoint: removePoint,
     exportControlPoints: exportPoints,
@@ -73,12 +69,12 @@ function main() {
     curves.polyline = new FKLine(controlPointsPositions, ColorParams.polygon)
     curves.bezier = new FKBezierLine(controlPointsPositions, ColorParams.bezier)
 
-    curves.fstPolyline = new FKPolyline(controlPointsPositions)
-    curves.sndPolyline = new FKPolyline(curves.fstPolyline.exportPoints())
-    curves.trdPolyline = new FKPolyline(curves.sndPolyline.exportPoints())
+    polylines[0] = new FKPolyline(controlPointsPositions)
+    for (let i = 1; i < pointsCount-1; i++) {
+        polylines.push(new FKPolyline(polylines[i - 1].exportPoints()))
+    }
 
     curves.uniformBSpline = new FKBSpline(controlPointsPositions, ColorParams.uniformBSpline, 3, "uniform")
-    curves.selectedUBSpline = new FKLine(curves.uniformBSpline.getSegmentByIndex(selectedPoint,controlPointsPositions),"#000000")
 
     curves.nonUniformBSpline = new FKBSpline(controlPointsPositions, ColorParams.nonUniformBSpline, 3, "nonUniform")
 
@@ -87,6 +83,10 @@ function main() {
             fk.add(curves[curvesKey].curve)
         }
     }
+    polylines.forEach(line => {
+        fk.add(line.curve)
+    })
+    // fk.add(polylines[0].curve)
 
     load([
         new THREE.Vector3(402.3456856807021, -359.44473917583423, 54.353753188060395),
@@ -125,39 +125,35 @@ function render() {
     } else {
         selectedPoint = -1
     }
+    if (selectedPoint !== -1) {
+        document.getElementById("info").textContent = "当前选中的控制点为 P" + (selectedPoint + 1)
+    } else {
+        document.getElementById("info").textContent = "当前未选中控制点"
+    }
 
     curves.polyline.curve.visible = GUIParams.polygon
     curves.polyline.curve.material.color.set(ColorParams.polygon)
 
+    //region bezier
     curves.bezier.curve.visible = GUIParams.bezierCurve
     curves.bezier.curve.material.color.set(ColorParams.bezier)
     curves.bezier.getPointByParam(GUIParams.param)
     fk.add(curves.bezier.paramObj)
 
-    curves.fstPolyline.updatePolyline(controlPointsPositions, GUIParams.param)
-    curves.fstPolyline.update()
-    curves.fstPolyline.curve.visible = !(GUIParams.param === 0 || GUIParams.param === 1) && GUIParams.fst
-
-    curves.sndPolyline.updatePolyline(curves.fstPolyline.exportPoints(), GUIParams.param)
-    curves.sndPolyline.update()
-    curves.sndPolyline.curve.visible = !(GUIParams.param === 0 || GUIParams.param === 1) && GUIParams.snd
-
-    curves.trdPolyline.updatePolyline(curves.sndPolyline.exportPoints(), GUIParams.param)
-    curves.trdPolyline.update()
-    curves.trdPolyline.curve.visible = !(GUIParams.param === 0 || GUIParams.param === 1) && GUIParams.trd
+    polylines.forEach((line, index) => {
+        if (index === 0) line.updatePolyline(controlPointsPositions, GUIParams.param)
+        else line.updatePolyline(polylines[index - 1].exportPoints(), GUIParams.param)
+        line.update()
+        line.curve.visible = !(GUIParams.param === 0 || GUIParams.param === 1) && GUIParams.paramLines
+    })
+    //endregion
 
     curves.uniformBSpline.curve.visible = GUIParams.uniformBSplineCurve
     curves.uniformBSpline.curve.material.color.set(ColorParams.uniformBSpline)
     curves.uniformBSpline.getPointByParam(GUIParams.param)
     fk.add(curves.uniformBSpline.paramObj)
+    //TODO-局部控制显示
 
-    if (selectedPoint !== -1){
-        curves.selectedUBSpline.updateSelected(selectedPoint,controlPointsPositions)
-        curves.selectedUBSpline.update()
-        fk.add(curves.selectedUBSpline)
-    }else {
-        fk.remove(curves.selectedUBSpline)
-    }
 
     curves.nonUniformBSpline.curve.visible = GUIParams.nonUniformBSplineCurve
     curves.nonUniformBSpline.curve.material.color.set(ColorParams.nonUniformBSpline)
@@ -195,6 +191,13 @@ function load(new_positions) {
 }
 
 function updateCurve() {
+    polylines.forEach((line, index) => {
+        if (index === 0) line.updatePolyline(controlPointsPositions, GUIParams.param)
+        else line.updatePolyline(polylines[index - 1].exportPoints(), GUIParams.param)
+
+        line.update()
+    })
+
     for (const k in curves) {
         const curve = curves[k]
         if (curve != null) {
@@ -204,23 +207,11 @@ function updateCurve() {
                     break
                 }
                 case "uniformBSpline": {
-                    curve.updateBSpline(controlPointsPositions, "uniform")
+                    curve.updateBSpline(controlPointsPositions)
                     break
                 }
                 case "nonUniformBSpline": {
-                    curve.updateBSpline(controlPointsPositions, "nonUniform")
-                    break
-                }
-                case "fstPolyline": {
-                    curve.updatePolyline(controlPointsPositions, GUIParams.param)
-                    break
-                }
-                case "sndPolyline": {
-                    curve.updatePolyline(curves.fstPolyline.exportPoints(), GUIParams.param)
-                    break
-                }
-                case "trdPolyline": {
-                    curve.updatePolyline(curves.sndPolyline.exportPoints(), GUIParams.param)
+                    curve.updateBSpline(controlPointsPositions)
                     break
                 }
             }
@@ -247,9 +238,7 @@ function setGUI() {
     const bezierFolder = gui.addFolder("三次贝塞尔曲线")
     bezierFolder.add(GUIParams, "bezierCurve").name("贝塞尔曲线 ").onChange(fk.render)
     bezierFolder.addColor(ColorParams, "bezier").name("颜色").onChange(fk.render)
-    bezierFolder.add(GUIParams,"fst").name("三阶辅助线").onChange(fk.render)
-    bezierFolder.add(GUIParams,"snd").name("二阶辅助线").onChange(fk.render)
-    bezierFolder.add(GUIParams,"trd").name("一阶辅助线").onChange(fk.render)
+    bezierFolder.add(GUIParams, "paramLines").name("辅助线").onChange(fk.render)
 
     const bSplineFolder = gui.addFolder("三次b样条曲线")
 
@@ -271,6 +260,12 @@ function addPoint() {
 
     controlPointsPositions.push(fk.addControlHelper().position)
 
+    while (polylines.length < pointsCount - 2){
+        let new_pl = new FKPolyline(polylines[polylines.length-1].exportPoints())
+        fk.add(new_pl.curve)
+        new_pl.updatePolyline(polylines[polylines.length-1].exportPoints(),GUIParams.param)
+        polylines.push(new_pl)
+    }
     updateCurve()
 
     fk.render()
@@ -288,6 +283,10 @@ function removePoint() {
 
     if (fk.transformControl.object === point) fk.transformControl.detach()
     fk.remove(point)
+
+    while (polylines.length > pointsCount - 2) {
+        fk.remove(polylines.pop().curve)
+    }
 
     updateCurve()
 
@@ -308,5 +307,4 @@ function exportPoints() {
 }
 
 //endregion
-
 
