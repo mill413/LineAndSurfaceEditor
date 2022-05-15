@@ -201,6 +201,7 @@ class FKScene {
         //设置OrbitControls
         this.orbitControl = new OrbitControls(this.camera, this.renderer.domElement)
         this.orbitControl.addEventListener('change', this.render)
+        this.orbitControl.minDistance = 500
         this.orbitControl.maxDistance = 2000
 
         //设置TransformControls

@@ -7,19 +7,26 @@ class FKBSpline extends FKLine {
         this.degree = degree
         this.order = degree + 1
         this.btype = type
-
-        this.knotObj = []
     }
 
-    updateBSpline(controlPoints) {
+    updateBSpline(controlPoints, type = this.btype) {
         this.points.length = 0
-        getBSplinePoints(controlPoints, this.btype, this.degree).forEach(pts => {
+        getBSplinePoints(controlPoints, type, this.degree).forEach(pts => {
             this.points.push(pts)
         })
     }
 
     getKnots(controlPoints) {
         return generateKnots(this.btype, controlPoints.length, this.degree)
+    }
+
+    getKnotsPoints(controlPoints) {
+        let knots = generateKnots(this.btype, controlPoints.length, this.degree)
+        let koc = []
+        for (let i = 0; i < knots.length; i++) {
+            koc.push(calculateBSplinePoint(controlPoints, knots[i], this.degree, knots))
+        }
+        return koc
     }
 
     getSegment(selected, controlPoints) {
@@ -51,8 +58,10 @@ function getBSplinePoints(controlPoints, type, degree = 3) {
 
     const knot = generateKnots(type, controlPointsCount, degree)
 
-    for (let i = degree; i <= controlPointsCount - 1; i++) {
+    for (let i = degree; i < controlPointsCount; i++) {
         for (let t = knot[i]; t <= knot[i + 1]; t += (knot[i + 1] - knot[i]) / division) {
+            // console.log(t)
+            // console.log(calculateBSplinePoint(controlPoints, t, degree, knot))
             bSplinePoints.push(calculateBSplinePoint(controlPoints, t, degree, knot))
         }
     }
@@ -72,7 +81,7 @@ function generateKnots(type, controlPointsCount, degree) {
     knot.length = 0
     switch (type) {
         case "uniform": {
-            for (let i = 0; i <= 1; i += 1 / (knotCount - 1)) {
+            for (let i = 0; i < knotCount; i++) {
                 knot.push(i)
             }
             break
@@ -99,6 +108,7 @@ function generateKnots(type, controlPointsCount, degree) {
             console.log("bSpline type error!")
         }
     }
+
     return knot
 }
 
