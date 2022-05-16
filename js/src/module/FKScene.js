@@ -2,14 +2,58 @@ import * as THREE from 'three'
 import {Vector2} from 'three'
 import {OrbitControls} from "../../lib/three/examples/jsm/controls/OrbitControls.js";
 import {TransformControls} from "../../lib/three/examples/jsm/controls/TransformControls.js";
+import GUI from "../../lib/three/examples/jsm/libs/lil-gui.module.min.js"
 
-const params = {
-    backgroundColor: "#ffffff",
-    lightPositionX: 400,
-    lightPositionY: 600,
-    lightPositionZ: 1200,
-    lightAngle: Math.PI / 6,
-    distance: 0
+const GUIParams = {
+    backgroundColor: "#cfc9c9",
+    camera: {
+        x: 919,
+        y: 890,
+        z: 548
+    },
+    spotLight: {
+        position: {
+            x: 400,
+            y: 600,
+            z: 1759
+        },
+        color: 0xffffff,
+        intensity: 1.5,
+        angle: 0.87,
+        distance: 7970,
+        visible: false
+    },
+    plane: {
+        xoy: {
+            color: 0x8c8c8c,
+            opacity: 0.5
+        },
+        yoz: {
+            color: 0x8c8c8c,
+            opacity: 0.5
+        },
+        xoz: {
+            color: 0x8c8c8c,
+            opacity: 0.5
+        }
+    },
+    grid: {
+        xoy: {
+            centerLine: 0x444444,
+            grid: 0x888888,
+            opacity: 0.4
+        },
+        yoz: {
+            centerLine: 0x444444,
+            grid: 0x888888,
+            opacity: 0.4
+        },
+        xoz: {
+            centerLine: 0x444444,
+            grid: 0x888888,
+            opacity: 0.4
+        }
+    }
 }
 
 let rayCaster = new THREE.Raycaster()
@@ -29,13 +73,14 @@ class FKScene {
     stats
     orbitControl
     helperObjects = []
-    light
+    spotLight
     spotHelper
     ARC_SEGMENTS = 200
 
-    constructor(preRender = ()=>{}) {
+    constructor(preRender = () => {
+    }) {
         this.container = document.getElementById("container")
-        this.render = ()=>{
+        this.render = () => {
             preRender()
             this.renderer.render(this.scene, this.camera)
         }
@@ -43,9 +88,12 @@ class FKScene {
         this.setScene()
         this.setCamera()
         this.setRender()
+
+        this.setGUI()
     }
 
-    createInterface(update = ()=>{}) {
+    createInterface(update = () => {
+    }) {
         this.setLight()
 
         this.setPlane()
@@ -62,19 +110,19 @@ class FKScene {
     }
 
     //region initialScene
-    setScene(){
+    setScene() {
         this.scene = new THREE.Scene()
-        this.scene.background = new THREE.Color(params.backgroundColor)
+        this.scene.background = new THREE.Color(GUIParams.backgroundColor)
     }
 
-    setCamera(){
+    setCamera() {
         this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 10000)
-        this.camera.position.set(919, 890, 548)
+        this.camera.position.set(GUIParams.camera.x, GUIParams.camera.y, GUIParams.camera.z)
         this.camera.up.set(0, 0, 1)
         this.scene.add(this.camera)
     }
 
-    setRender(){
+    setRender() {
         this.renderer = new THREE.WebGLRenderer({antialias: true})
         this.renderer.setPixelRatio(window.devicePixelRatio)
         this.renderer.setSize(window.innerWidth, window.innerHeight)
@@ -84,76 +132,88 @@ class FKScene {
     setLight() {
         //设置光照
         this.scene.add(new THREE.AmbientLight(0xf0f0f0))
-        this.light = new THREE.SpotLight(0xffffff, 1.5)
-        this.light.position.set(400, 600, 1759)
-        this.light.angle = 0.87
-        this.light.distance = 7970
-        this.light.castShadow = true
-        this.light.shadow.camera.near = 200
-        this.light.shadow.camera.far = 2000
-        this.light.shadow.bias = -0.000222
-        this.light.shadow.mapSize.width = 1024
-        this.light.shadow.mapSize.height = 1024
+        this.spotLight = new THREE.SpotLight(GUIParams.spotLight.color, GUIParams.spotLight.intensity)
+        this.spotLight.position.set(GUIParams.spotLight.position.x, GUIParams.spotLight.position.y, GUIParams.spotLight.position.z)
+        this.spotLight.angle = GUIParams.spotLight.angle
+        this.spotLight.distance = GUIParams.spotLight.distance
+        this.spotLight.castShadow = true
+        this.spotLight.shadow.camera.near = 200
+        this.spotLight.shadow.camera.far = 2000
+        this.spotLight.shadow.bias = -0.000222
+        this.spotLight.shadow.mapSize.width = 1024
+        this.spotLight.shadow.mapSize.height = 1024
 
-        this.scene.add(this.light)
+        this.scene.add(this.spotLight)
 
-        this.spotHelper = new THREE.SpotLightHelper(this.light)
-        // scene.add(spotHelper)
-
+        this.spotHelper = new THREE.SpotLightHelper(this.spotLight)
+        this.scene.add(this.spotHelper)
+        this.spotHelper.visible = GUIParams.spotLight.visible
     }
 
     setPlane() {
         //设置底部平面
         const planeGeometry = new THREE.PlaneGeometry(2000, 2000)
-        const planeMaterial = new THREE.ShadowMaterial({
-            color: 0x000000,
-            opacity: 0.3,
-            // transparent :true
-        })
+        new THREE.MeshLambertMaterial({
+            color: GUIParams.plane.color,
+            opacity: GUIParams.plane.opacity,
+            transparent: true
+        });
+        const xoyPlane = new THREE.Mesh(planeGeometry, new THREE.MeshLambertMaterial({
+            color: GUIParams.plane.xoy.color,
+            opacity: GUIParams.plane.xoy.opacity,
+            transparent: true
+        }))
+        xoyPlane.receiveShadow = true
+        xoyPlane.position.set(0, 0, 0)
 
-        const plane = new THREE.Mesh(planeGeometry, planeMaterial)
-        plane.receiveShadow = true
-        plane.position.set(0, 0, 0)
+        const yozPlane = new THREE.Mesh(planeGeometry, new THREE.MeshLambertMaterial({
+            color: GUIParams.plane.yoz.color,
+            opacity: GUIParams.plane.yoz.opacity,
+            transparent: true
+        }))
+        yozPlane.receiveShadow = true
+        yozPlane.rotateX(-Math.PI / 2)
+        yozPlane.position.set(0, -1000, 1000)
 
-        const plane1 = new THREE.Mesh(planeGeometry, planeMaterial)
-        plane1.receiveShadow = true
-        plane1.rotateX(-Math.PI / 2)
-        plane1.position.set(0, -1000, 1000)
+        const xozPlane = new THREE.Mesh(planeGeometry, new THREE.MeshLambertMaterial({
+            color: GUIParams.plane.xoz.color,
+            opacity: GUIParams.plane.xoz.opacity,
+            transparent: true
+        }))
+        xozPlane.receiveShadow = true
+        xozPlane.rotateY(Math.PI / 2)
+        xozPlane.position.set(-1000, 0, 1000)
 
-        const plane2 = new THREE.Mesh(planeGeometry, planeMaterial)
-        plane2.receiveShadow = true
-        plane2.rotateY(Math.PI / 2)
-        plane2.position.set(-1000, 0, 1000)
+        this.planes = [xoyPlane, yozPlane, xozPlane]
 
-        this.scene.add(plane)
-        this.scene.add(plane1)
-        this.scene.add(plane2)
+        this.scene.add(xoyPlane)
+        this.scene.add(yozPlane)
+        this.scene.add(xozPlane)
     }
 
     setGridHelper() {
         //设置底部坐标格
-        const helper = new THREE.GridHelper(2000, 100)
-        helper.rotateX(-Math.PI / 2)
-        helper.material.opacity = 0.4
-        helper.material.transparent = true
-        helper.position.z = -0.5
+        const xoyGrid = new THREE.GridHelper(2000, 100)
+        xoyGrid.rotateX(-Math.PI / 2)
+        xoyGrid.material.opacity = 0.4
+        xoyGrid.material.transparent = true
+        xoyGrid.position.z = -0.5
 
-        const helper1 = new THREE.GridHelper(2000, 10)
-        helper1.material.opacity = 0.4
-        helper1.material.transparent = true
-        helper1.position.y = -1000
-        helper1.position.z = 1000
+        const yozGrid = new THREE.GridHelper(2000, 10)
+        yozGrid.material.opacity = 0.4
+        yozGrid.material.transparent = true
+        yozGrid.position.y = -1000
+        yozGrid.position.z = 1000
 
-        const helper2 = new THREE.GridHelper(2000, 10)
-        helper2.material.opacity = 0.4
-        helper2.material.transparent = true
-        helper2.position.x = -1000
-        helper2.position.z = 1000
-        helper2.rotateZ(Math.PI / 2)
-
-        this.scene.add(helper)
-        this.scene.add(helper1)
-        this.scene.add(helper2)
+        const xozGrid = new THREE.GridHelper(2000, 10)
+        xozGrid.material.opacity = 0.4
+        xozGrid.material.transparent = true
+        xozGrid.position.x = -1000
+        xozGrid.position.z = 1000
+        xozGrid.rotateZ(Math.PI / 2)
+        this.scene.add(xoyGrid)
+        this.scene.add(yozGrid)
+        this.scene.add(xozGrid)
     }
 
     setAxes() {
@@ -215,6 +275,7 @@ class FKScene {
         })
         this.scene.add(this.transformControl)
     }
+
     //endregion
 
     //region pointControlEvent
@@ -224,7 +285,7 @@ class FKScene {
             this.onPointerUp(e)
             this.render()
         })
-        document.addEventListener('pointermove', (e)=>{
+        document.addEventListener('pointermove', (e) => {
             this.onPointerMove(e)
         })
         window.addEventListener('resize', () => {
@@ -259,6 +320,7 @@ class FKScene {
         this.renderer.setSize(window.innerWidth, window.innerHeight)
         render()
     }
+
     //endregion
 
     addControlHelper(position) {
@@ -284,12 +346,98 @@ class FKScene {
         return object
     }
 
-    add(obj){
+    add(obj) {
         this.scene.add(obj)
     }
 
-    remove(obj){
+    remove(obj) {
         this.scene.remove(obj)
+    }
+
+    setGUI() {
+        const gui = new GUI()
+        gui.domElement.classList.add("globalGUI")
+        gui.title("全局控制")
+
+        gui.addColor(GUIParams, "backgroundColor").onChange(color => {
+            this.scene.background = new THREE.Color(color)
+            this.render()
+        })
+
+        //region plane
+        let planeFolder = gui.addFolder("Plane")
+        planeFolder.addColor(GUIParams.plane.xoy, "color").name("xoyColor").onChange(color => {
+            this.planes[0].material.color.copy(new THREE.Color(color))
+            this.render()
+        })
+        planeFolder.add(GUIParams.plane.xoy, "opacity", 0, 1, 0.01).name("xoyOpacity").onChange(op => {
+            this.planes[0].material.opacity = op
+            this.render()
+        })
+
+        planeFolder.addColor(GUIParams.plane.yoz, "color").name("yozColor").onChange(color => {
+            this.planes[1].material.color.copy(new THREE.Color(color))
+            this.render()
+        })
+        planeFolder.add(GUIParams.plane.yoz, "opacity", 0, 1, 0.01).name("yozOpacity").onChange(op => {
+            this.planes[1].material.opacity = op
+            this.render()
+        })
+
+        planeFolder.addColor(GUIParams.plane.xoz, "color").name("xozColor").onChange(color => {
+            this.planes[2].material.color.copy(new THREE.Color(color))
+            this.render()
+        })
+        planeFolder.add(GUIParams.plane.xoz, "opacity", 0, 1, 0.01).name("xozOpacity").onChange(op => {
+            this.planes[2].material.opacity = op
+            this.render()
+        })
+        //endregion
+
+        //region light
+        let lightFolder = gui.addFolder("Light")
+        lightFolder.add(GUIParams.spotLight.position, "x", -2000, 2000, 1).onChange(() => {
+            this.spotLight.position.set(GUIParams.spotLight.position.x, GUIParams.spotLight.position.y, GUIParams.spotLight.position.z)
+            this.spotHelper.update()
+            this.render()
+        })
+        lightFolder.add(GUIParams.spotLight.position, "y", -2000, 2000, 1).onChange(() => {
+            this.spotLight.position.set(GUIParams.spotLight.position.x, GUIParams.spotLight.position.y, GUIParams.spotLight.position.z)
+            this.spotHelper.update()
+            this.render()
+        })
+        lightFolder.add(GUIParams.spotLight.position, "z", 0, 3000, 1).onChange(() => {
+            this.spotLight.position.set(GUIParams.spotLight.position.x, GUIParams.spotLight.position.y, GUIParams.spotLight.position.z)
+            this.spotHelper.update()
+            this.render()
+        })
+
+        lightFolder.addColor(GUIParams.spotLight, "color").onChange(color => {
+            this.spotLight.color = new THREE.Color(color)
+            this.spotHelper.color = new THREE.Color(color)
+            this.spotHelper.update()
+            this.render()
+        })
+        lightFolder.add(GUIParams.spotLight, "intensity", 0, 5, 0.1).onChange(int => {
+            this.spotLight.intensity = int
+            this.spotHelper.update()
+            this.render()
+        })
+        lightFolder.add(GUIParams.spotLight, "angle", 0, Math.PI / 2, 0.01).onChange(() => {
+            this.spotLight.angle = GUIParams.spotLight.angle
+            this.spotHelper.update()
+            this.render()
+        })
+        lightFolder.add(GUIParams.spotLight, "distance", 0, 10000, 10).onChange(() => {
+            this.spotLight.distance = GUIParams.spotLight.distance
+            this.spotHelper.update()
+            this.render()
+        })
+        lightFolder.add(GUIParams.spotLight, "visible").onChange(() => {
+            this.spotHelper.visible = GUIParams.spotLight.visible
+            this.render()
+        })
+        //endregion
     }
 }
 
@@ -375,7 +523,7 @@ function makeTextSprite(message, parameters) {
 
 }
 
-export {FKScene,makeTextSprite}
+export {FKScene, makeTextSprite}
 
 
 

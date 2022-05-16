@@ -1,4 +1,3 @@
-import * as THREE from "three"
 import {FKScene} from "./module/FKScene.js";
 
 let fk = new FKScene()

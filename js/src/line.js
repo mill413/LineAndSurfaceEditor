@@ -32,13 +32,13 @@ let GUIPreset = {}
 const GUIParams = {
     polygon: true,
 
-    bezierCurve: false,
+    bezierCurve: true,
     paramLines: false,
 
     uniformBSplineCurve: true,
-    uniKnot: true,
+    uniKnot: false,
 
-    nonUniformBSplineCurve: false,
+    nonUniformBSplineCurve: true,
 
     param: 0,
     addPoint: addPoint,
@@ -65,9 +65,6 @@ const ColorParams = {
 
 let uniKnotSprite = []
 let uniKnotsObj = []
-
-// let nUniKnotSprite = []
-// let nUniKnotObj = []
 
 let selectedPoint = -1
 
@@ -196,12 +193,6 @@ function render() {
         fk.add(obj)
         uniKnotsObj.push(obj)
     })
-    //TODO-局部控制显示
-    // curves.selectedUBSpline.points.length = 0
-    // curves.uniformBSpline.getSegment(selectedPoint, controlPointsPositions).forEach(pts => {
-    //     curves.selectedUBSpline.points.push(pts)
-    // })
-    // curves.selectedUBSpline.curve.visible = !(selectedPoint === -1)
     //endregion
 
     //region nonUniformBSpline
@@ -333,6 +324,7 @@ function addPoint() {
         new_pl.updatePolyline(polylines[polylines.length - 1].exportPoints(), GUIParams.param)
         polylines.push(new_pl)
     }
+
     updateCurve()
 
     fk.render()

@@ -76,6 +76,4 @@ function getFactorial(i) {
 }
 
 
-
-
 export {FKBezierLine}

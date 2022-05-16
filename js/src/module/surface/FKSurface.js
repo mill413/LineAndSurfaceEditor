@@ -1,5 +1,5 @@
 class FKSurface {
-    constructor(controlPoints,lineColor,surfaceColor) {
+    constructor(controlPoints, lineColor, surfaceColor) {
 
     }
 }
