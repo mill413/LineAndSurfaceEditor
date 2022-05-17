@@ -28,11 +28,11 @@ const GUIParams = {
             color: 0x8c8c8c,
             opacity: 0.5
         },
-        yoz: {
+        xoz: {
             color: 0x8c8c8c,
             opacity: 0.5
         },
-        xoz: {
+        yoz: {
             color: 0x8c8c8c,
             opacity: 0.5
         }
@@ -41,18 +41,34 @@ const GUIParams = {
         xoy: {
             centerLine: 0x444444,
             grid: 0x888888,
-            opacity: 0.4
-        },
-        yoz: {
-            centerLine: 0x444444,
-            grid: 0x888888,
-            opacity: 0.4
+            opacity: 0.4,
+            size: 2000,
+            division: 100
         },
         xoz: {
             centerLine: 0x444444,
             grid: 0x888888,
-            opacity: 0.4
-        }
+            opacity: 0.4,
+            size: 2000,
+            division: 10,
+            position: {
+                x: 0,
+                y: -1000,
+                z: 1000
+            }
+        },
+        yoz: {
+            centerLine: 0x444444,
+            grid: 0x888888,
+            opacity: 0.4,
+            size: 2000,
+            division: 10,
+            position: {
+                x: -1000,
+                y: 0,
+                z: 1000
+            }
+        },
     }
 }
 
@@ -116,7 +132,7 @@ class FKScene {
     }
 
     setCamera() {
-        this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 10000)
+        this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 20000)
         this.camera.position.set(GUIParams.camera.x, GUIParams.camera.y, GUIParams.camera.z)
         this.camera.up.set(0, 0, 1)
         this.scene.add(this.camera)
@@ -162,29 +178,29 @@ class FKScene {
         xoyPlane.receiveShadow = true
         xoyPlane.position.set(0, 0, 0)
 
-        const yozPlane = new THREE.Mesh(planeGeometry, new THREE.MeshLambertMaterial({
+        const xozPlane = new THREE.Mesh(planeGeometry, new THREE.MeshLambertMaterial({
             color: GUIParams.plane.yoz.color,
             opacity: GUIParams.plane.yoz.opacity,
             transparent: true
         }))
-        yozPlane.receiveShadow = true
-        yozPlane.rotateX(-Math.PI / 2)
-        yozPlane.position.set(0, -1000, 1000)
+        xozPlane.receiveShadow = true
+        xozPlane.rotateX(-Math.PI / 2)
+        xozPlane.position.set(0, -1000, 1000)
 
-        const xozPlane = new THREE.Mesh(planeGeometry, new THREE.MeshLambertMaterial({
+        const yozPlane = new THREE.Mesh(planeGeometry, new THREE.MeshLambertMaterial({
             color: GUIParams.plane.xoz.color,
             opacity: GUIParams.plane.xoz.opacity,
             transparent: true
         }))
-        xozPlane.receiveShadow = true
-        xozPlane.rotateY(Math.PI / 2)
-        xozPlane.position.set(-1000, 0, 1000)
+        yozPlane.receiveShadow = true
+        yozPlane.rotateY(Math.PI / 2)
+        yozPlane.position.set(-1000, 0, 1000)
 
-        this.planes = [xoyPlane, yozPlane, xozPlane]
+        this.planes = [xoyPlane, xozPlane, yozPlane]
 
         this.scene.add(xoyPlane)
-        this.scene.add(yozPlane)
         this.scene.add(xozPlane)
+        this.scene.add(yozPlane)
     }
 
     setGridHelper() {
@@ -195,21 +211,24 @@ class FKScene {
         xoyGrid.material.transparent = true
         xoyGrid.position.z = -0.5
 
-        const yozGrid = new THREE.GridHelper(2000, 10)
-        yozGrid.material.opacity = 0.4
-        yozGrid.material.transparent = true
-        yozGrid.position.y = -1000
-        yozGrid.position.z = 1000
-
         const xozGrid = new THREE.GridHelper(2000, 10)
         xozGrid.material.opacity = 0.4
         xozGrid.material.transparent = true
-        xozGrid.position.x = -1000
+        xozGrid.position.y = -1000
         xozGrid.position.z = 1000
-        xozGrid.rotateZ(Math.PI / 2)
+
+        const yozGrid = new THREE.GridHelper(2000, 10)
+        yozGrid.material.opacity = 0.4
+        yozGrid.material.transparent = true
+        yozGrid.position.x = -1000
+        yozGrid.position.z = 1000
+        yozGrid.rotateZ(Math.PI / 2)
+
+        this.grids = [xoyGrid, xozGrid, yozGrid]
+
         this.scene.add(xoyGrid)
-        this.scene.add(yozGrid)
         this.scene.add(xozGrid)
+        this.scene.add(yozGrid)
     }
 
     setAxes() {
@@ -257,8 +276,8 @@ class FKScene {
         //设置OrbitControls
         this.orbitControl = new OrbitControls(this.camera, this.renderer.domElement)
         this.orbitControl.addEventListener('change', this.render)
-        this.orbitControl.minDistance = 500
-        this.orbitControl.maxDistance = 2000
+        // this.orbitControl.minDistance = 500
+        // this.orbitControl.maxDistance = 2000
 
         //设置TransformControls
         this.transformControl = new TransformControls(this.camera, this.renderer.domElement)
@@ -277,88 +296,317 @@ class FKScene {
         gui.domElement.classList.add("globalGUI")
         gui.title("全局控制")
 
-        gui.addColor(GUIParams, "backgroundColor").onChange(color => {
+        gui.addColor(GUIParams, "backgroundColor").name("背景颜色").onChange(color => {
             this.scene.background = new THREE.Color(color)
             this.render()
         })
 
         //region plane
-        let planeFolder = gui.addFolder("Plane")
-        planeFolder.addColor(GUIParams.plane.xoy, "color").name("xoyColor").onChange(color => {
+        let planeFolder = gui.addFolder("平面")
+
+        let xoyFolder = planeFolder.addFolder("xoy面")
+        xoyFolder.addColor(GUIParams.plane.xoy, "color").name("颜色").onChange(color => {
             this.planes[0].material.color.copy(new THREE.Color(color))
             this.render()
         })
-        planeFolder.add(GUIParams.plane.xoy, "opacity", 0, 1, 0.01).name("xoyOpacity").onChange(op => {
+        xoyFolder.add(GUIParams.plane.xoy, "opacity", 0, 1, 0.01).name("不透明度").onChange(op => {
             this.planes[0].material.opacity = op
             this.render()
         })
 
-        planeFolder.addColor(GUIParams.plane.yoz, "color").name("yozColor").onChange(color => {
+        let xozFolder = planeFolder.addFolder("xoz面")
+        xozFolder.addColor(GUIParams.plane.xoz, "color").name("颜色").onChange(color => {
             this.planes[1].material.color.copy(new THREE.Color(color))
             this.render()
         })
-        planeFolder.add(GUIParams.plane.yoz, "opacity", 0, 1, 0.01).name("yozOpacity").onChange(op => {
+        xozFolder.add(GUIParams.plane.xoz, "opacity", 0, 1, 0.01).name("不透明度").onChange(op => {
             this.planes[1].material.opacity = op
             this.render()
         })
 
-        planeFolder.addColor(GUIParams.plane.xoz, "color").name("xozColor").onChange(color => {
+        let yozFolder = planeFolder.addFolder("yoz面")
+        yozFolder.addColor(GUIParams.plane.yoz, "color").name("yoz面颜色").onChange(color => {
             this.planes[2].material.color.copy(new THREE.Color(color))
             this.render()
         })
-        planeFolder.add(GUIParams.plane.xoz, "opacity", 0, 1, 0.01).name("xozOpacity").onChange(op => {
+        yozFolder.add(GUIParams.plane.yoz, "opacity", 0, 1, 0.01).name("yoz面不透明度").onChange(op => {
             this.planes[2].material.opacity = op
             this.render()
         })
+
+        planeFolder.close()
         //endregion
 
         //region light
-        let lightFolder = gui.addFolder("Light")
-        lightFolder.add(GUIParams.spotLight.position, "x", -2000, 2000, 1).onChange(() => {
+        let lightFolder = gui.addFolder("光照")
+
+        let lightPosition = lightFolder.addFolder("光源坐标")
+        lightPosition.add(GUIParams.spotLight.position, "x", -2000, 2000, 1).onChange(() => {
             this.spotLight.position.set(GUIParams.spotLight.position.x, GUIParams.spotLight.position.y, GUIParams.spotLight.position.z)
             this.spotHelper.update()
             this.render()
         })
-        lightFolder.add(GUIParams.spotLight.position, "y", -2000, 2000, 1).onChange(() => {
+        lightPosition.add(GUIParams.spotLight.position, "y", -2000, 2000, 1).onChange(() => {
             this.spotLight.position.set(GUIParams.spotLight.position.x, GUIParams.spotLight.position.y, GUIParams.spotLight.position.z)
             this.spotHelper.update()
             this.render()
         })
-        lightFolder.add(GUIParams.spotLight.position, "z", 0, 3000, 1).onChange(() => {
+        lightPosition.add(GUIParams.spotLight.position, "z", 0, 3000, 1).onChange(() => {
             this.spotLight.position.set(GUIParams.spotLight.position.x, GUIParams.spotLight.position.y, GUIParams.spotLight.position.z)
             this.spotHelper.update()
             this.render()
         })
 
-        lightFolder.addColor(GUIParams.spotLight, "color").onChange(color => {
+        lightFolder.addColor(GUIParams.spotLight, "color").name("光源颜色").onChange(color => {
             this.spotLight.color = new THREE.Color(color)
             this.spotHelper.color = new THREE.Color(color)
             this.spotHelper.update()
             this.render()
         })
-        lightFolder.add(GUIParams.spotLight, "intensity", 0, 5, 0.1).onChange(int => {
+        lightFolder.add(GUIParams.spotLight, "intensity", 0, 5, 0.1).name("光照强度").onChange(int => {
             this.spotLight.intensity = int
             this.spotHelper.update()
             this.render()
         })
-        lightFolder.add(GUIParams.spotLight, "angle", 0, Math.PI / 2, 0.01).onChange(() => {
+        lightFolder.add(GUIParams.spotLight, "angle", 0, Math.PI / 2, 0.01).name("光照角度").onChange(() => {
             this.spotLight.angle = GUIParams.spotLight.angle
             this.spotHelper.update()
             this.render()
         })
-        lightFolder.add(GUIParams.spotLight, "distance", 0, 10000, 10).onChange(() => {
+        lightFolder.add(GUIParams.spotLight, "distance", 0, 10000, 10).name("光照距离").onChange(() => {
             this.spotLight.distance = GUIParams.spotLight.distance
             this.spotHelper.update()
             this.render()
         })
-        lightFolder.add(GUIParams.spotLight, "visible").onChange(() => {
+        lightFolder.add(GUIParams.spotLight, "visible").name("光源可见").onChange(() => {
             this.spotHelper.visible = GUIParams.spotLight.visible
             this.render()
         })
+
+        lightFolder.close()
+        //endregion
+
+        //region grid
+        let xoyGrid = xoyFolder.addFolder("网格")
+        xoyGrid.addColor(GUIParams.grid.xoy, "centerLine").name("轴线颜色").onChange(() => {
+            const xoyGrid = new THREE.GridHelper(GUIParams.grid.xoy.size, GUIParams.grid.xoy.division, GUIParams.grid.xoy.centerLine, GUIParams.grid.xoy.grid)
+            xoyGrid.rotateX(-Math.PI / 2)
+            xoyGrid.material.opacity = GUIParams.grid.xoy.opacity
+            xoyGrid.material.transparent = true
+            xoyGrid.position.z = -0.5
+
+            this.remove(this.grids[0])
+            this.grids[0] = xoyGrid
+            this.add(xoyGrid)
+            this.render()
+        })
+        xoyGrid.addColor(GUIParams.grid.xoy, "grid").name("网格线颜色").onChange(() => {
+            const xoyGrid = new THREE.GridHelper(GUIParams.grid.xoy.size, GUIParams.grid.xoy.division, GUIParams.grid.xoy.centerLine, GUIParams.grid.xoy.grid)
+            xoyGrid.rotateX(-Math.PI / 2)
+            xoyGrid.material.opacity = GUIParams.grid.xoy.opacity
+            xoyGrid.material.transparent = true
+            xoyGrid.position.z = -0.5
+
+            this.remove(this.grids[0])
+            this.grids[0] = xoyGrid
+            this.add(xoyGrid)
+            this.render()
+        })
+        xoyGrid.add(GUIParams.grid.xoy, "opacity", 0, 1, 0.01).name("不透明度").onChange(() => {
+            const xoyGrid = new THREE.GridHelper(GUIParams.grid.xoy.size, GUIParams.grid.xoy.division, GUIParams.grid.xoy.centerLine, GUIParams.grid.xoy.grid)
+            xoyGrid.rotateX(-Math.PI / 2)
+            xoyGrid.material.opacity = GUIParams.grid.xoy.opacity
+            xoyGrid.material.transparent = true
+            xoyGrid.position.z = -0.5
+
+            this.remove(this.grids[0])
+            this.grids[0] = xoyGrid
+            this.add(xoyGrid)
+            this.render()
+        })
+        xoyGrid.add(GUIParams.grid.xoy, "size", 0, 20000, 10).name("尺寸").onChange((size) => {
+            const xoyGrid = new THREE.GridHelper(GUIParams.grid.xoy.size, GUIParams.grid.xoy.division, GUIParams.grid.xoy.centerLine, GUIParams.grid.xoy.grid)
+            xoyGrid.rotateX(-Math.PI / 2)
+            xoyGrid.material.opacity = GUIParams.grid.xoy.opacity
+            xoyGrid.material.transparent = true
+            xoyGrid.position.z = -0.5
+
+            this.remove(this.grids[0])
+            this.grids[0] = xoyGrid
+            this.add(xoyGrid)
+
+            this.planes[0].geometry = new THREE.PlaneGeometry(size, size)
+            this.render()
+        })
+        xoyGrid.add(GUIParams.grid.xoy, "division", 0, GUIParams.grid.xoy.size, 1).name("细分次数").onChange(() => {
+            const xoyGrid = new THREE.GridHelper(GUIParams.grid.xoy.size, GUIParams.grid.xoy.division, GUIParams.grid.xoy.centerLine, GUIParams.grid.xoy.grid)
+            xoyGrid.rotateX(-Math.PI / 2)
+            xoyGrid.material.opacity = GUIParams.grid.xoy.opacity
+            xoyGrid.material.transparent = true
+            xoyGrid.position.z = -0.5
+
+            this.remove(this.grids[0])
+            this.grids[0] = xoyGrid
+            this.add(xoyGrid)
+            this.render()
+        })
+        xoyGrid.close()
+
+        let xozGrid = xozFolder.addFolder("网格")
+        xozGrid.addColor(GUIParams.grid.xoz, "centerLine").name("轴线颜色").onChange(() => {
+            const xozGrid = new THREE.GridHelper(GUIParams.grid.xoz.size, GUIParams.grid.xoz.division, GUIParams.grid.xoz.centerLine, GUIParams.grid.xoz.grid)
+            xozGrid.material.opacity = GUIParams.grid.xoz.opacity
+            xozGrid.material.transparent = true
+            xozGrid.position.y = GUIParams.grid.xoz.position.y
+            xozGrid.position.z = GUIParams.grid.xoz.position.z
+
+            this.remove(this.grids[1])
+            this.grids[1] = xozGrid
+            this.add(xozGrid)
+            this.render()
+        })
+        xozGrid.addColor(GUIParams.grid.xoz, "grid").name("网格线颜色").onChange(() => {
+            const xozGrid = new THREE.GridHelper(GUIParams.grid.xoz.size, GUIParams.grid.xoz.division, GUIParams.grid.xoz.centerLine, GUIParams.grid.xoz.grid)
+            xozGrid.material.opacity = GUIParams.grid.xoz.opacity
+            xozGrid.material.transparent = true
+            xozGrid.position.y = GUIParams.grid.xoz.position.y
+            xozGrid.position.z = GUIParams.grid.xoz.position.z
+
+            this.remove(this.grids[1])
+            this.grids[1] = xozGrid
+            this.add(xozGrid)
+            this.render()
+        })
+        xozGrid.add(GUIParams.grid.xoz, "opacity", 0, 1, 0.01).name("不透明度").onChange(() => {
+            const xozGrid = new THREE.GridHelper(GUIParams.grid.xoz.size, GUIParams.grid.xoz.division, GUIParams.grid.xoz.centerLine, GUIParams.grid.xoz.grid)
+            xozGrid.material.opacity = GUIParams.grid.xoz.opacity
+            xozGrid.material.transparent = true
+            xozGrid.position.y = GUIParams.grid.xoz.position.y
+            xozGrid.position.z = GUIParams.grid.xoz.position.z
+
+            this.remove(this.grids[1])
+            this.grids[1] = xozGrid
+            this.add(xozGrid)
+            this.render()
+        })
+        xozGrid.add(GUIParams.grid.xoz, "size", 0, 20000, 10).name("尺寸").onChange((size) => {
+            const xozGrid = new THREE.GridHelper(GUIParams.grid.xoz.size, GUIParams.grid.xoz.division, GUIParams.grid.xoz.centerLine, GUIParams.grid.xoz.grid)
+            xozGrid.material.opacity = GUIParams.grid.xoz.opacity
+            xozGrid.material.transparent = true
+            xozGrid.position.y = GUIParams.grid.xoz.position.y
+            xozGrid.position.z = GUIParams.grid.xoz.position.z
+
+            this.remove(this.grids[1])
+            this.grids[1] = xozGrid
+            this.add(xozGrid)
+
+            this.planes[1].geometry = new THREE.PlaneGeometry(size, size)
+            this.render()
+        })
+        xozGrid.add(GUIParams.grid.xoz, "division", 0, GUIParams.grid.xoz.size, 1).name("细分次数").onChange(() => {
+            const xozGrid = new THREE.GridHelper(GUIParams.grid.xoz.size, GUIParams.grid.xoz.division, GUIParams.grid.xoz.centerLine, GUIParams.grid.xoz.grid)
+            xozGrid.material.opacity = GUIParams.grid.xoz.opacity
+            xozGrid.material.transparent = true
+            xozGrid.position.y = GUIParams.grid.xoz.position.y
+            xozGrid.position.z = GUIParams.grid.xoz.position.z
+
+            this.remove(this.grids[1])
+            this.grids[1] = xozGrid
+            this.add(xozGrid)
+            this.render()
+        })
+        xozGrid.add(GUIParams.grid.xoz.position, "y", -10000, 0, 1).onChange(y => {
+            this.grids[1].position.y = y
+            this.render()
+        })
+        xozGrid.add(GUIParams.grid.xoz.position, "z", 0, 10000, 1).onChange(z => {
+            this.grids[1].position.z = z
+            this.render()
+        })
+        xozGrid.close()
+
+        let yozGrid = yozFolder.addFolder("网格")
+        yozGrid.addColor(GUIParams.grid.yoz, "centerLine").name("轴线颜色").onChange(() => {
+            const yozGrid = new THREE.GridHelper(GUIParams.grid.yoz.size, GUIParams.grid.yoz.division, GUIParams.grid.yoz.centerLine, GUIParams.grid.yoz.grid)
+            yozGrid.material.opacity = GUIParams.grid.yoz.opacity
+            yozGrid.material.transparent = true
+            yozGrid.position.x = -1000
+            yozGrid.position.z = 1000
+            yozGrid.rotateZ(Math.PI / 2)
+
+            this.remove(this.grids[2])
+            this.grids[2] = yozGrid
+            this.add(yozGrid)
+            this.render()
+        })
+        yozGrid.addColor(GUIParams.grid.yoz, "grid").name("网格线颜色").onChange(() => {
+            const yozGrid = new THREE.GridHelper(GUIParams.grid.yoz.size, GUIParams.grid.yoz.division, GUIParams.grid.yoz.centerLine, GUIParams.grid.yoz.grid)
+            yozGrid.material.opacity = GUIParams.grid.yoz.opacity
+            yozGrid.material.transparent = true
+            yozGrid.position.x = -1000
+            yozGrid.position.z = 1000
+            yozGrid.rotateZ(Math.PI / 2)
+
+            this.remove(this.grids[2])
+            this.grids[2] = yozGrid
+            this.add(yozGrid)
+            this.render()
+        })
+        yozGrid.add(GUIParams.grid.yoz, "opacity", 0, 1, 0.01).name("不透明度").onChange(() => {
+            const yozGrid = new THREE.GridHelper(GUIParams.grid.yoz.size, GUIParams.grid.yoz.division, GUIParams.grid.yoz.centerLine, GUIParams.grid.yoz.grid)
+            yozGrid.material.opacity = GUIParams.grid.yoz.opacity
+            yozGrid.material.transparent = true
+            yozGrid.position.x = -1000
+            yozGrid.position.z = 1000
+            yozGrid.rotateZ(Math.PI / 2)
+
+            this.remove(this.grids[2])
+            this.grids[2] = yozGrid
+            this.add(yozGrid)
+            this.render()
+        })
+        yozGrid.add(GUIParams.grid.yoz, "size", 0, 20000, 10).name("尺寸").onChange((size) => {
+            const yozGrid = new THREE.GridHelper(GUIParams.grid.yoz.size, GUIParams.grid.yoz.division, GUIParams.grid.yoz.centerLine, GUIParams.grid.yoz.grid)
+            yozGrid.material.opacity = GUIParams.grid.yoz.opacity
+            yozGrid.material.transparent = true
+            yozGrid.position.x = -1000
+            yozGrid.position.z = 1000
+            yozGrid.rotateZ(Math.PI / 2)
+
+            this.remove(this.grids[2])
+            this.grids[2] = yozGrid
+            this.add(yozGrid)
+
+            this.planes[2].geometry = new THREE.PlaneGeometry(size, size)
+            this.render()
+        })
+        yozGrid.add(GUIParams.grid.yoz, "division", 0, GUIParams.grid.xoy.size, 1).name("细分次数").onChange(() => {
+            const yozGrid = new THREE.GridHelper(GUIParams.grid.yoz.size, GUIParams.grid.yoz.division, GUIParams.grid.yoz.centerLine, GUIParams.grid.yoz.grid)
+            yozGrid.material.opacity = GUIParams.grid.yoz.opacity
+            yozGrid.material.transparent = true
+            yozGrid.position.x = -1000
+            yozGrid.position.z = 1000
+            yozGrid.rotateZ(Math.PI / 2)
+
+            this.remove(this.grids[2])
+            this.grids[2] = yozGrid
+            this.add(yozGrid)
+            this.render()
+        })
+        yozGrid.add(GUIParams.grid.yoz.position, "x", -10000, 0, 1).onChange(x => {
+            this.grids[2].position.x = x
+            this.render()
+        })
+        yozGrid.add(GUIParams.grid.yoz.position, "z", 0, 10000, 1).onChange(z => {
+            this.grids[2].position.z = z
+            this.render()
+        })
+        yozGrid.close()
         //endregion
 
         gui.close()
     }
+
     //endregion
 
     //region pointControlEvent

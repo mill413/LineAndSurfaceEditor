@@ -20,7 +20,7 @@ export class FKBezierSurface extends FKSurface {
     }
 
     updateBezier(controlPoints) {
-        this.row.forEach((row,i) => {
+        this.row.forEach((row, i) => {
             row.updateBezier(controlPoints[i])
         })
         this.column.forEach((col, i) => {

@@ -8,7 +8,7 @@ export class FKSurface {
         this.division = 200
     }
 
-    update(){
+    update() {
         const tempPoint = new THREE.Vector3()
 
         const rows = this.row
@@ -40,7 +40,7 @@ export class FKSurface {
         })
     }
 
-    addTo(scene){
+    addTo(scene) {
         this.row.forEach(row => {
             scene.add(row.curve)
         })
