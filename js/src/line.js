@@ -143,12 +143,7 @@ function render() {
         document.getElementById("info").textContent = "当前未选中控制点"
     }
 
-    curves.polyline.curve.visible = GUIParams.polygon
-    curves.polyline.curve.material.color.set(ColorParams.polygon)
-
     //region bezier
-    curves.bezier.curve.visible = GUIParams.bezierCurve
-    curves.bezier.curve.material.color.set(ColorParams.bezier)
     curves.bezier.getPointByParam(GUIParams.param)
     fk.add(curves.bezier.paramObj)
 
@@ -161,8 +156,6 @@ function render() {
     //endregion
 
     //region uniformBSpline
-    curves.uniformBSpline.curve.visible = GUIParams.uniformBSplineCurve
-    curves.uniformBSpline.curve.material.color.set(ColorParams.uniformBSpline)
     curves.uniformBSpline.getPointByParam(GUIParams.param)
     fk.add(curves.uniformBSpline.paramObj)
 
@@ -196,8 +189,6 @@ function render() {
     //endregion
 
     //region nonUniformBSpline
-    curves.nonUniformBSpline.curve.visible = GUIParams.nonUniformBSplineCurve
-    curves.nonUniformBSpline.curve.material.color.set(ColorParams.nonUniformBSpline)
     curves.nonUniformBSpline.getPointByParam(GUIParams.param)
     fk.add(curves.nonUniformBSpline.paramObj)
     //endregion
@@ -281,7 +272,6 @@ function updateCurve() {
 function setGUI() {
     gui.title("自由曲线控制面板")
 
-    // gui.addColor(ColorParams, "background").name("背景颜色").onChange(render)
     gui.add(GUIParams, "param", 0, 1, 0.01).name("计算参数").onChange(fk.render)
     gui.add(GUIParams, "addPoint").name("添加点")
     gui.add(GUIParams, "removePoint").name("删除点")
@@ -289,24 +279,48 @@ function setGUI() {
     gui.add(GUIParams, "reset").name("重置")
 
     const polygonFolder = gui.addFolder("特征多边形")
-    polygonFolder.add(GUIParams, "polygon").name("特征多边形").onChange(fk.render)
-    polygonFolder.addColor(ColorParams, "polygon").name("颜色").onChange(fk.render)
+    polygonFolder.add(GUIParams, "polygon").name("特征多边形").onChange(() => {
+        curves.polyline.curve.visible = GUIParams.polygon
+        fk.render()
+    })
+    polygonFolder.addColor(ColorParams, "polygon").name("颜色").onChange(() => {
+        curves.polyline.curve.material.color.set(ColorParams.polygon)
+        fk.render()
+    })
 
     const bezierFolder = gui.addFolder("三次贝塞尔曲线")
-    bezierFolder.add(GUIParams, "bezierCurve").name("贝塞尔曲线 ").onChange(fk.render)
-    bezierFolder.addColor(ColorParams, "bezier").name("颜色").onChange(fk.render)
+    bezierFolder.add(GUIParams, "bezierCurve").name("贝塞尔曲线 ").onChange(() => {
+        curves.bezier.curve.visible = GUIParams.bezierCurve
+        fk.render()
+    })
+    bezierFolder.addColor(ColorParams, "bezier").name("颜色").onChange(() => {
+        curves.bezier.curve.material.color.set(ColorParams.bezier)
+        fk.render()
+    })
     bezierFolder.add(GUIParams, "paramLines").name("辅助线").onChange(fk.render)
 
     const bSplineFolder = gui.addFolder("三次b样条曲线")
 
     const uniformFolder = bSplineFolder.addFolder("均匀b样条曲线")
-    uniformFolder.add(GUIParams, "uniformBSplineCurve").name("均匀b样条曲线").onChange(fk.render)
-    uniformFolder.addColor(ColorParams, "uniformBSpline").name("颜色").onChange(fk.render)
+    uniformFolder.add(GUIParams, "uniformBSplineCurve").name("均匀b样条曲线").onChange(() => {
+        curves.uniformBSpline.curve.visible = GUIParams.uniformBSplineCurve
+        fk.render()
+    })
+    uniformFolder.addColor(ColorParams, "uniformBSpline").name("颜色").onChange(() => {
+        curves.uniformBSpline.curve.material.color.set(ColorParams.uniformBSpline)
+        fk.render()
+    })
     uniformFolder.add(GUIParams, "uniKnot").name("节点").onChange(fk.render)
 
     const nonUniformFolder = bSplineFolder.addFolder("准均匀b样条曲线")
-    nonUniformFolder.add(GUIParams, "nonUniformBSplineCurve").name("准均匀b样条曲线").onChange(fk.render)
-    nonUniformFolder.addColor(ColorParams, "nonUniformBSpline").name("颜色").onChange(fk.render)
+    nonUniformFolder.add(GUIParams, "nonUniformBSplineCurve").name("准均匀b样条曲线").onChange(() => {
+        curves.nonUniformBSpline.curve.visible = GUIParams.nonUniformBSplineCurve
+        fk.render()
+    })
+    nonUniformFolder.addColor(ColorParams, "nonUniformBSpline").name("颜色").onChange(() => {
+        curves.nonUniformBSpline.curve.material.color.set(ColorParams.nonUniformBSpline)
+        fk.render()
+    })
 
     GUIPreset = gui.save()
 
