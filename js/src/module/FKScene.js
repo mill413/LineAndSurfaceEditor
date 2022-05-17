@@ -153,11 +153,7 @@ class FKScene {
     setPlane() {
         //设置底部平面
         const planeGeometry = new THREE.PlaneGeometry(2000, 2000)
-        new THREE.MeshLambertMaterial({
-            color: GUIParams.plane.color,
-            opacity: GUIParams.plane.opacity,
-            transparent: true
-        });
+
         const xoyPlane = new THREE.Mesh(planeGeometry, new THREE.MeshLambertMaterial({
             color: GUIParams.plane.xoy.color,
             opacity: GUIParams.plane.xoy.opacity,
@@ -276,84 +272,6 @@ class FKScene {
         this.scene.add(this.transformControl)
     }
 
-    //endregion
-
-    //region pointControlEvent
-    addEventListener() {
-        document.addEventListener('pointerdown', onPointerDown)
-        document.addEventListener('pointerup', (e) => {
-            this.onPointerUp(e)
-            this.render()
-        })
-        document.addEventListener('pointermove', (e) => {
-            this.onPointerMove(e)
-        })
-        window.addEventListener('resize', () => {
-            this.onWindowResize(this.render)
-        })
-    }
-
-    onPointerUp(event) {
-        onUpPosition.x = event.clientX
-        onUpPosition.y = event.clientY
-        if (onDownPosition.distanceTo(onUpPosition) === 0)
-            this.transformControl.detach()
-    }
-
-    onPointerMove(event) {
-        mousePointer.x = (event.clientX / window.innerWidth) * 2 - 1
-        mousePointer.y = -(event.clientY / window.innerHeight) * 2 + 1
-        rayCaster.setFromCamera(mousePointer, this.camera)
-        const intersects = rayCaster.intersectObjects(this.helperObjects, false)
-        if (intersects.length > 0) {
-            const object = intersects[0].object
-            if (object !== this.transformControl.object && this.transformControl.object == null) {
-                this.transformControl.attach(object)
-            }
-        }
-
-    }
-
-    onWindowResize(render) {
-        this.camera.aspect = window.innerWidth / window.innerHeight
-        this.camera.updateProjectionMatrix()
-        this.renderer.setSize(window.innerWidth, window.innerHeight)
-        render()
-    }
-
-    //endregion
-
-    addControlHelper(position) {
-        const material = new THREE.MeshLambertMaterial({color: Math.random() * 0xffffff})
-        const object = new THREE.Mesh(objectGeometry, material)
-
-        if (position) {
-
-            object.position.copy(position)
-
-        } else {
-
-            object.position.x = Math.random() * 1000 - 500
-            object.position.y = Math.random() * 600
-            object.position.z = Math.random() * 800 - 400
-        }
-
-        object.castShadow = true
-        object.receiveShadow = true
-        this.scene.add(object)
-        this.helperObjects.push(object)
-
-        return object
-    }
-
-    add(obj) {
-        this.scene.add(obj)
-    }
-
-    remove(obj) {
-        this.scene.remove(obj)
-    }
-
     setGUI() {
         const gui = new GUI()
         gui.domElement.classList.add("globalGUI")
@@ -438,6 +356,85 @@ class FKScene {
             this.render()
         })
         //endregion
+
+        gui.close()
+    }
+    //endregion
+
+    //region pointControlEvent
+    addEventListener() {
+        document.addEventListener('pointerdown', onPointerDown)
+        document.addEventListener('pointerup', (e) => {
+            this.onPointerUp(e)
+            this.render()
+        })
+        document.addEventListener('pointermove', (e) => {
+            this.onPointerMove(e)
+        })
+        window.addEventListener('resize', () => {
+            this.onWindowResize(this.render)
+        })
+    }
+
+    onPointerUp(event) {
+        onUpPosition.x = event.clientX
+        onUpPosition.y = event.clientY
+        if (onDownPosition.distanceTo(onUpPosition) === 0)
+            this.transformControl.detach()
+    }
+
+    onPointerMove(event) {
+        mousePointer.x = (event.clientX / window.innerWidth) * 2 - 1
+        mousePointer.y = -(event.clientY / window.innerHeight) * 2 + 1
+        rayCaster.setFromCamera(mousePointer, this.camera)
+        const intersects = rayCaster.intersectObjects(this.helperObjects, false)
+        if (intersects.length > 0) {
+            const object = intersects[0].object
+            if (object !== this.transformControl.object && this.transformControl.object == null) {
+                this.transformControl.attach(object)
+            }
+        }
+
+    }
+
+    onWindowResize(render) {
+        this.camera.aspect = window.innerWidth / window.innerHeight
+        this.camera.updateProjectionMatrix()
+        this.renderer.setSize(window.innerWidth, window.innerHeight)
+        render()
+    }
+
+    //endregion
+
+    addControlHelper(position) {
+        const material = new THREE.MeshLambertMaterial({color: Math.random() * 0xffffff})
+        const object = new THREE.Mesh(objectGeometry, material)
+
+        if (position) {
+
+            object.position.copy(position)
+
+        } else {
+
+            object.position.x = Math.random() * 1000 - 500
+            object.position.y = Math.random() * 600
+            object.position.z = Math.random() * 800 - 400
+        }
+
+        object.castShadow = true
+        object.receiveShadow = true
+        this.scene.add(object)
+        this.helperObjects.push(object)
+
+        return object
+    }
+
+    add(obj) {
+        this.scene.add(obj)
+    }
+
+    remove(obj) {
+        this.scene.remove(obj)
     }
 }
 

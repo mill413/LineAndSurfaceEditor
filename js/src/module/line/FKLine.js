@@ -19,6 +19,8 @@ class FKLine extends CatmullRomCurve3 {
         const paramPointMaterial = new THREE.MeshLambertMaterial({color: 0xffffff})
         const paramPointGeometry = new THREE.OctahedronGeometry(15)
         this.paramObj = new THREE.Mesh(paramPointGeometry, paramPointMaterial)
+
+        this.linePoints = points
     }
 
     update() {
