@@ -72,18 +72,6 @@ const GUIParams = {
     }
 }
 
-let rayCaster = new THREE.Raycaster()
-let mousePointer = new THREE.Vector2()
-let onUpPosition = new THREE.Vector2()
-let onDownPosition = new THREE.Vector2()
-
-const objectGeometry = new THREE.OctahedronGeometry(20)
-
-function onPointerDown(event) {
-    onDownPosition.x = event.clientX
-    onDownPosition.y = event.clientY
-}
-
 class FKScene {
     transformControl
     stats
@@ -106,6 +94,11 @@ class FKScene {
         this.setRender()
 
         this.setGUI()
+
+        this.rayCaster = new THREE.Raycaster()
+        this.mousePointer = new THREE.Vector2()
+        this.onUpPosition = new THREE.Vector2()
+        this.onDownPosition = new THREE.Vector2()
     }
 
     createInterface(update = () => {
@@ -611,7 +604,9 @@ class FKScene {
 
     //region pointControlEvent
     addEventListener() {
-        document.addEventListener('pointerdown', onPointerDown)
+        document.addEventListener('pointerdown', e => {
+            this.onPointerDown(e)
+        })
         document.addEventListener('pointerup', (e) => {
             this.onPointerUp(e)
             this.render()
@@ -625,17 +620,22 @@ class FKScene {
     }
 
     onPointerUp(event) {
-        onUpPosition.x = event.clientX
-        onUpPosition.y = event.clientY
-        if (onDownPosition.distanceTo(onUpPosition) === 0)
+        this.onUpPosition.x = event.clientX
+        this.onUpPosition.y = event.clientY
+        if (this.onDownPosition.distanceTo(this.onUpPosition) === 0)
             this.transformControl.detach()
     }
 
+    onPointerDown(event) {
+        this.onDownPosition.x = event.clientX
+        this.onDownPosition.y = event.clientY
+    }
+
     onPointerMove(event) {
-        mousePointer.x = (event.clientX / window.innerWidth) * 2 - 1
-        mousePointer.y = -(event.clientY / window.innerHeight) * 2 + 1
-        rayCaster.setFromCamera(mousePointer, this.camera)
-        const intersects = rayCaster.intersectObjects(this.helperObjects, false)
+        this.mousePointer.x = (event.clientX / window.innerWidth) * 2 - 1
+        this.mousePointer.y = -(event.clientY / window.innerHeight) * 2 + 1
+        this.rayCaster.setFromCamera(this.mousePointer, this.camera)
+        const intersects = this.rayCaster.intersectObjects(this.helperObjects, false)
         if (intersects.length > 0) {
             const object = intersects[0].object
             if (object !== this.transformControl.object && this.transformControl.object == null) {
@@ -645,17 +645,18 @@ class FKScene {
 
     }
 
-    onWindowResize(render) {
+    onWindowResize() {
         this.camera.aspect = window.innerWidth / window.innerHeight
         this.camera.updateProjectionMatrix()
         this.renderer.setSize(window.innerWidth, window.innerHeight)
-        render()
+        this.render()
     }
 
     //endregion
 
     addControlHelper(position) {
         const material = new THREE.MeshLambertMaterial({color: Math.random() * 0xffffff})
+        const objectGeometry = new THREE.OctahedronGeometry(20)
         const object = new THREE.Mesh(objectGeometry, material)
 
         if (position) {
