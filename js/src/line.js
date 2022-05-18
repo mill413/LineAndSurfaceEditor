@@ -43,7 +43,18 @@ const GUIParams = {
     param: 0,
     addPoint: addPoint,
     removePoint: removePoint,
-    exportControlPoints: exportPoints,
+    exportControlPoints() {
+        const output = []
+
+        for (let i = 0; i < controlPointsPositions.length; i++) {
+            const p = fk.helperObjects[i].position
+            output.push(`new THREE.Vector3(${p.x}, ${p.y}, ${p.z})`)
+        }
+
+        console.log(output.join(',\n'))
+        const code = '[' + (output.join(',\n\t')) + ']'
+        prompt('copy and paste code', code)
+    },
     reset() {
         gui.load(GUIPreset)
         load([
@@ -72,7 +83,6 @@ main()
 
 function main() {
     fk.createInterface(updateCurve)
-
 
     setGUI()
 
@@ -112,164 +122,6 @@ function main() {
     fk.render()
 }
 
-function render() {
-    // 控制点序号文字显示
-    pointSprites.forEach(ps => {
-        fk.remove(ps)
-    })
-    pointSprites.length = 0
-    for (let i = 0; i < controlPointsPositions.length; i++) {
-        let ps = makeTextSprite("P" + (i).toString(),
-            {fontsize: 100})
-        fk.add(ps)
-        pointSprites.push(ps)
-    }
-    pointSprites.forEach((ps, ind) => {
-        ps.position.set(controlPointsPositions[ind].x, controlPointsPositions[ind].y, controlPointsPositions[ind].z)
-    })
-
-    // 获取选中的控制点下标
-    if (fk.transformControl.object !== undefined) {
-        controlPointsPositions.forEach((cp, ind) => {
-            if (cp === fk.transformControl.object.position) {
-                selectedPoint = ind
-            }
-        })
-    } else {
-        selectedPoint = -1
-    }
-    if (selectedPoint !== -1) {
-        document.getElementById("info").textContent = "当前选中的控制点为 P" + (selectedPoint)
-    } else {
-        document.getElementById("info").textContent = "当前未选中控制点"
-    }
-
-    //region bezier
-    curves.bezier.getPointByParam(GUIParams.param)
-    fk.add(curves.bezier.paramObj)
-
-    polylines.forEach((line, index) => {
-        if (index === 0) line.updatePolyline(controlPointsPositions, GUIParams.param)
-        else line.updatePolyline(polylines[index - 1].exportPoints(), GUIParams.param)
-        line.update()
-        line.curve.visible = !(GUIParams.param === 0 || GUIParams.param === 1) && GUIParams.paramLines
-    })
-    //endregion
-
-    //region uniformBSpline
-    curves.uniformBSpline.getPointByParam(GUIParams.param)
-    fk.add(curves.uniformBSpline.paramObj)
-
-    //节点显示
-    let uniKnotPoints = curves.uniformBSpline.getKnotsPoints(controlPointsPositions)
-    uniKnotSprite.forEach(ks => {
-        fk.remove(ks)
-    })
-    uniKnotSprite.length = 0
-    for (let i = 0; i < uniKnotPoints.length; i++) {
-        let ks = makeTextSprite("K" + (i).toString(),
-            {fontsize: 50})
-        fk.add(ks)
-        uniKnotSprite.push(ks)
-    }
-    uniKnotSprite.forEach((ks, ind) => {
-        let ksp = uniKnotPoints[ind]
-        ks.position.set(ksp.x, ksp.y, ksp.z + ind * 2)
-        ks.visible = GUIParams.uniformBSplineCurve && GUIParams.uniKnot
-    })
-    uniKnotsObj.forEach(ko => fk.remove(ko))
-    uniKnotsObj.length = 0
-    uniKnotPoints.forEach((k) => {
-        let obj = new THREE.Mesh(paramPointGeometry, paramPointMaterial)
-        obj.position.copy(k)
-        obj.material.color.set(curves.uniformBSpline.material.color)
-        obj.visible = GUIParams.uniformBSplineCurve && GUIParams.uniKnot
-        fk.add(obj)
-        uniKnotsObj.push(obj)
-    })
-    //endregion
-
-    //region nonUniformBSpline
-    curves.nonUniformBSpline.getPointByParam(GUIParams.param)
-    fk.add(curves.nonUniformBSpline.paramObj)
-    //endregion
-}
-
-function initialControlPoints() {
-    for (let i = 0; i < pointsCount; i++) {
-        fk.addControlHelper(controlPointsPositions[i])
-    }
-
-    controlPointsPositions.length = 0
-
-    for (let i = 0; i < pointsCount; i++) {
-        controlPointsPositions.push(fk.helperObjects[i].position)
-    }
-
-}
-
-function load(new_positions) {
-    while (new_positions.length > controlPointsPositions.length) {
-        addPoint()
-    }
-
-    while (new_positions.length < controlPointsPositions.length) {
-        removePoint()
-    }
-
-    for (let i = 0; i < controlPointsPositions.length; i++) {
-        controlPointsPositions[i].copy(new_positions[i])
-    }
-
-    updateCurve()
-}
-
-function updateCurve() {
-    polylines.forEach((line, index) => {
-        if (index === 0) line.updatePolyline(controlPointsPositions, GUIParams.param)
-        else line.updatePolyline(polylines[index - 1].exportPoints(), GUIParams.param)
-        line.update()
-    })
-
-    for (const k in curves) {
-        const curve = curves[k]
-        if (curve != null) {
-            switch (k) {
-                case "bezier": {
-                    curve.updateBezier(controlPointsPositions)
-                    break
-                }
-
-                case "uniformBSpline": {
-                    curve.updateBSpline(controlPointsPositions, "uniform")
-                    break
-                }
-                case "selectedUBSpline": {
-                    curve.points.length = 0
-                    curves.uniformBSpline.getSegment(selectedPoint, controlPointsPositions).forEach(pts => {
-                        curve.points.push(pts)
-                    })
-                    break
-                }
-
-                case "nonUniformBSpline": {
-                    curve.updateBSpline(controlPointsPositions, "nonUniform")
-                    break
-                }
-                // case "selectedNUBSpline": {
-                //     curve.points.length = 0
-                //     curves.nonUniformBSpline.getSegment(selectedPoint, controlPointsPositions).forEach(pts => {
-                //         curve.points.push(pts)
-                //     })
-                //     break
-                // }
-            }
-            curve.update()
-        }
-    }
-}
-
-//region GUI
 function setGUI() {
     gui.title("自由曲线控制面板")
 
@@ -328,6 +180,122 @@ function setGUI() {
     gui.open()
 }
 
+function initialControlPoints() {
+    for (let i = 0; i < pointsCount; i++) {
+        fk.addControlHelper(controlPointsPositions[i])
+    }
+
+    controlPointsPositions.length = 0
+
+    for (let i = 0; i < pointsCount; i++) {
+        controlPointsPositions.push(fk.helperObjects[i].position)
+    }
+
+}
+
+function load(new_positions) {
+    while (new_positions.length > controlPointsPositions.length) {
+        addPoint()
+    }
+
+    while (new_positions.length < controlPointsPositions.length) {
+        removePoint()
+    }
+
+    for (let i = 0; i < controlPointsPositions.length; i++) {
+        controlPointsPositions[i].copy(new_positions[i])
+    }
+
+    updateCurve()
+}
+
+function render() {
+    // 控制点序号文字显示
+    pointSprites.forEach(ps => {
+        fk.remove(ps)
+    })
+    pointSprites.length = 0
+    for (let i = 0; i < controlPointsPositions.length; i++) {
+        let ps = makeTextSprite("P" + (i).toString(),
+            {fontsize: 100})
+        fk.add(ps)
+        pointSprites.push(ps)
+    }
+    pointSprites.forEach((ps, ind) => {
+        ps.position.set(controlPointsPositions[ind].x, controlPointsPositions[ind].y, controlPointsPositions[ind].z)
+    })
+
+    // 获取选中的控制点下标
+    if (fk.transformControl.object !== undefined) {
+        controlPointsPositions.forEach((cp, ind) => {
+            if (cp === fk.transformControl.object.position) {
+                selectedPoint = ind
+            }
+        })
+    } else {
+        selectedPoint = -1
+    }
+    if (selectedPoint !== -1) {
+        document.getElementById("info").textContent = "当前选中的控制点为 P" + (selectedPoint) + "(" + (
+            Math.round(fk.helperObjects[selectedPoint].position.x) + ","
+            + Math.round(fk.helperObjects[selectedPoint].position.y) + ","
+            + Math.round(fk.helperObjects[selectedPoint].position.z)
+        ) + ")"
+    } else {
+        document.getElementById("info").textContent = "当前未选中控制点"
+    }
+
+    //region bezier
+    curves.bezier.getPointByParam(GUIParams.param)
+    fk.add(curves.bezier.paramObj)
+
+    polylines.forEach((line, index) => {
+        if (index === 0) line.updatePolyline(controlPointsPositions, GUIParams.param)
+        else line.updatePolyline(polylines[index - 1].exportPoints(), GUIParams.param)
+        line.update()
+        line.curve.visible = !(GUIParams.param === 0 || GUIParams.param === 1) && GUIParams.paramLines
+    })
+    //endregion
+
+    //region uniformBSpline
+    curves.uniformBSpline.getPointByParam(GUIParams.param)
+    fk.add(curves.uniformBSpline.paramObj)
+
+    //节点显示
+    let uniKnotPoints = curves.uniformBSpline.getKnotsPoints(controlPointsPositions)
+    uniKnotSprite.forEach(ks => {
+        fk.remove(ks)
+    })
+    uniKnotSprite.length = 0
+    for (let i = 0; i < uniKnotPoints.length; i++) {
+        let ks = makeTextSprite("K" + (i).toString(),
+            {fontsize: 50})
+        fk.add(ks)
+        uniKnotSprite.push(ks)
+    }
+    uniKnotSprite.forEach((ks, ind) => {
+        let ksp = uniKnotPoints[ind]
+        ks.position.set(ksp.x, ksp.y, ksp.z + ind * 2)
+        ks.visible = GUIParams.uniformBSplineCurve && GUIParams.uniKnot
+    })
+    uniKnotsObj.forEach(ko => fk.remove(ko))
+    uniKnotsObj.length = 0
+    uniKnotPoints.forEach((k) => {
+        let obj = new THREE.Mesh(paramPointGeometry, paramPointMaterial)
+        obj.position.copy(k)
+        obj.material.color.set(curves.uniformBSpline.material.color)
+        obj.visible = GUIParams.uniformBSplineCurve && GUIParams.uniKnot
+        fk.add(obj)
+        uniKnotsObj.push(obj)
+    })
+    //endregion
+
+    //region nonUniformBSpline
+    curves.nonUniformBSpline.getPointByParam(GUIParams.param)
+    fk.add(curves.nonUniformBSpline.paramObj)
+    //endregion
+}
+
 function addPoint() {
     pointsCount++
 
@@ -367,18 +335,51 @@ function removePoint() {
     fk.render()
 }
 
-function exportPoints() {
-    const output = []
+function updateCurve() {
+    polylines.forEach((line, index) => {
+        if (index === 0) line.updatePolyline(controlPointsPositions, GUIParams.param)
+        else line.updatePolyline(polylines[index - 1].exportPoints(), GUIParams.param)
+        line.update()
+    })
 
-    for (let i = 0; i < controlPointsPositions.length; i++) {
-        const p = fk.helperObjects[i].position
-        output.push(`new THREE.Vector3(${p.x}, ${p.y}, ${p.z})`)
+    for (const k in curves) {
+        const curve = curves[k]
+        if (curve != null) {
+            switch (k) {
+                case "bezier": {
+                    curve.updateBezier(controlPointsPositions)
+                    break
+                }
+
+                case "uniformBSpline": {
+                    curve.updateBSpline(controlPointsPositions, "uniform")
+                    break
+                }
+                case "selectedUBSpline": {
+                    curve.points.length = 0
+                    curves.uniformBSpline.getSegment(selectedPoint, controlPointsPositions).forEach(pts => {
+                        curve.points.push(pts)
+                    })
+                    break
+                }
+
+                case "nonUniformBSpline": {
+                    curve.updateBSpline(controlPointsPositions, "nonUniform")
+                    break
+                }
+                // case "selectedNUBSpline": {
+                //     curve.points.length = 0
+                //     curves.nonUniformBSpline.getSegment(selectedPoint, controlPointsPositions).forEach(pts => {
+                //         curve.points.push(pts)
+                //     })
+                //     break
+                // }
+            }
+            curve.update()
+        }
     }
-
-    console.log(output.join(',\n'))
-    const code = '[' + (output.join(',\n\t')) + ']'
-    prompt('copy and paste code', code)
 }
 
-//endregion
+
+
 
