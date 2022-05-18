@@ -73,6 +73,7 @@ main()
 function main() {
     fk.createInterface(updateCurve)
 
+
     setGUI()
 
     initialControlPoints()

@@ -74,16 +74,15 @@ const GUIParams = {
 
 class FKScene {
     transformControl
-    stats
     orbitControl
     helperObjects = []
     spotLight
     spotHelper
-    ARC_SEGMENTS = 200
+
+    onDownPosition = new THREE.Vector2()
 
     constructor(preRender = () => {
     }) {
-        this.container = document.getElementById("container")
         this.render = () => {
             preRender()
             this.renderer.render(this.scene, this.camera)
@@ -94,11 +93,6 @@ class FKScene {
         this.setRender()
 
         this.setGUI()
-
-        this.rayCaster = new THREE.Raycaster()
-        this.mousePointer = new THREE.Vector2()
-        this.onUpPosition = new THREE.Vector2()
-        this.onDownPosition = new THREE.Vector2()
     }
 
     createInterface(update = () => {
@@ -115,7 +109,7 @@ class FKScene {
 
         this.addEventListener()
 
-        container.appendChild(this.renderer.domElement)
+        document.getElementById("container").appendChild(this.renderer.domElement)
     }
 
     //region initialScene
@@ -604,26 +598,19 @@ class FKScene {
 
     //region pointControlEvent
     addEventListener() {
-        document.addEventListener('pointerdown', e => {
-            this.onPointerDown(e)
-        })
-        document.addEventListener('pointerup', (e) => {
-            this.onPointerUp(e)
-            this.render()
-        })
-        document.addEventListener('pointermove', (e) => {
-            this.onPointerMove(e)
-        })
-        window.addEventListener('resize', () => {
-            this.onWindowResize(this.render)
-        })
+        document.addEventListener('pointerdown', e => this.onPointerDown(e))
+        document.addEventListener('pointerup', e => this.onPointerUp(e))
+        document.addEventListener('pointermove', e => this.onPointerMove(e))
+        window.addEventListener('resize', () => this.onWindowResize())
     }
 
     onPointerUp(event) {
-        this.onUpPosition.x = event.clientX
-        this.onUpPosition.y = event.clientY
-        if (this.onDownPosition.distanceTo(this.onUpPosition) === 0)
+        const onUpPosition = new THREE.Vector2()
+        onUpPosition.x = event.clientX
+        onUpPosition.y = event.clientY
+        if (this.onDownPosition.distanceTo(onUpPosition) === 0)
             this.transformControl.detach()
+        this.render()
     }
 
     onPointerDown(event) {
@@ -632,10 +619,12 @@ class FKScene {
     }
 
     onPointerMove(event) {
-        this.mousePointer.x = (event.clientX / window.innerWidth) * 2 - 1
-        this.mousePointer.y = -(event.clientY / window.innerHeight) * 2 + 1
-        this.rayCaster.setFromCamera(this.mousePointer, this.camera)
-        const intersects = this.rayCaster.intersectObjects(this.helperObjects, false)
+        const mousePointer = new THREE.Vector2()
+        mousePointer.x = (event.clientX / window.innerWidth) * 2 - 1
+        mousePointer.y = -(event.clientY / window.innerHeight) * 2 + 1
+        const rayCaster = new THREE.Raycaster()
+        rayCaster.setFromCamera(mousePointer, this.camera)
+        const intersects = rayCaster.intersectObjects(this.helperObjects, false)
         if (intersects.length > 0) {
             const object = intersects[0].object
             if (object !== this.transformControl.object && this.transformControl.object == null) {
