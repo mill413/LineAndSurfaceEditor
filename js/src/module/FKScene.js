@@ -91,8 +91,6 @@ class FKScene {
         this.setScene()
         this.setCamera()
         this.setRender()
-
-        this.setGUI()
     }
 
     createInterface(update = () => {
@@ -108,6 +106,8 @@ class FKScene {
         this.setControls(update)
 
         this.addEventListener()
+
+        this.setGUI()
 
         document.getElementById("container").appendChild(this.renderer.domElement)
     }
@@ -649,11 +649,8 @@ class FKScene {
         const object = new THREE.Mesh(objectGeometry, material)
 
         if (position) {
-
             object.position.copy(position)
-
         } else {
-
             object.position.x = Math.random() * 1000 - 500
             object.position.y = Math.random() * 600
             object.position.z = Math.random() * 800 - 400
