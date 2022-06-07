@@ -41,10 +41,11 @@ function getBezierPoints(controlPoints, division = 200) {
 function calculateBezierPoint(controlPoints, t) {
     let n = controlPoints.length - 1
     let x = 0, y = 0, z = 0
-    controlPoints.forEach(function (pts, i) {
-        x += pts.x * bernsteinNum(i, n, t)
-        y += pts.y * bernsteinNum(i, n, t)
-        z += pts.z * bernsteinNum(i, n, t)
+    controlPoints.forEach((pts, i) => {
+        const bernstein = bernsteinNum(i, n, t)
+        x += pts.x * bernstein
+        y += pts.y * bernstein
+        z += pts.z * bernstein
     })
     return new THREE.Vector3(x, y, z)
 }

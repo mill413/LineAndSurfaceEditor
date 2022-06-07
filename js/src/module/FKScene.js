@@ -105,9 +105,9 @@ class FKScene {
 
         this.setControls(update)
 
-        this.addEventListener()
+        this.addEventListener(update)
 
-        this.setGUI()
+        // this.setGUI()
 
         document.getElementById("container").appendChild(this.renderer.domElement)
     }
@@ -596,11 +596,12 @@ class FKScene {
 
     //endregion
 
-    //region pointControlEvent
+    //region Event
     addEventListener() {
         document.addEventListener('pointerdown', e => this.onPointerDown(e))
         document.addEventListener('pointerup', e => this.onPointerUp(e))
         document.addEventListener('pointermove', e => this.onPointerMove(e))
+
         window.addEventListener('resize', () => this.onWindowResize())
     }
 
@@ -640,7 +641,6 @@ class FKScene {
         this.renderer.setSize(window.innerWidth, window.innerHeight)
         this.render()
     }
-
     //endregion
 
     addControlHelper(position) {
@@ -691,6 +691,7 @@ function makeTextSprite(message, parameters) {
         ctx.stroke()
     }
 
+    //region parameters
     if (parameters === undefined) parameters = {}
 
     let fontface = parameters.hasOwnProperty("fontface") ?
@@ -711,9 +712,11 @@ function makeTextSprite(message, parameters) {
     /* 背景颜色 */
     let backgroundColor = parameters.hasOwnProperty("backgroundColor") ?
         parameters["backgroundColor"] : {r: 255, g: 255, b: 255, a: 0}
+    //endregion
 
-    /* 创建画布 */
     let canvas = document.createElement('canvas')
+    //region context
+    /* 创建画布 */
     let context = canvas.getContext('2d')
 
     /* 字体加粗 */
@@ -738,6 +741,7 @@ function makeTextSprite(message, parameters) {
     /* 字体颜色 */
     context.fillStyle = "rgba(0, 0, 0, 1.0)"
     context.fillText(message, borderThickness, fontsize + borderThickness)
+    //endregion
 
     /* 画布内容用于纹理贴图 */
     let texture = new THREE.Texture(canvas)

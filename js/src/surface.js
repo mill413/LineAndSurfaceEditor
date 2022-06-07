@@ -64,10 +64,9 @@ let pointSprites = [[], [], [], []]
 main()
 
 function main() {
+
     fk.createInterface(updateSurface)
-
     setGUI()
-
     initialControlPoints()
 
     surfaces.grid = new FKGrid(controlPointsPositions, ColorParams.grid, ColorParams.grid)
@@ -106,75 +105,6 @@ function main() {
     )
 
     fk.render()
-}
-
-function initialControlPoints() {
-    for (let i = 0; i < 4; i++) {
-        for (let j = 0; j < 4; j++) {
-            fk.addControlHelper(controlPointsPositions[i][j])
-        }
-    }
-
-    for (let i = 0; i < 4; i++) {
-        controlPointsPositions[i].length = 0
-
-        for (let j = 0; j < 4; j++) {
-            controlPointsPositions[i].push(fk.helperObjects[i * 4 + j].position)
-        }
-    }
-}
-
-function load(new_positions) {
-
-    for (let i = 0; i < 4; i++) {
-        for (let j = 0; j < controlPointsPositions[i].length; j++) {
-            controlPointsPositions[i][j].copy(new_positions[i][j])
-        }
-        updateSurface()
-    }
-}
-
-function updateSurface() {
-    for (const k in surfaces) {
-        const surface = surfaces[k]
-        if (surface != null) {
-            switch (k) {
-                case "bezier": {
-                    surface.updateBezier(controlPointsPositions)
-                    break
-                }
-                case "bSpline": {
-                }
-                    surface.updateBSpline(controlPointsPositions)
-                    break
-            }
-            surface.update()
-        }
-    }
-}
-
-function render() {
-    pointSprites.forEach(row => {
-        row.forEach(ps => {
-            fk.remove(ps)
-        })
-        row.length = 0
-    })
-    for (let i = 0; i < 4; i++) {
-        for (let j = 0; j < 4; j++) {
-            let ps = makeTextSprite("P" + (i + 1).toString() + "," + (j + 1).toString(),
-                {
-                    fontsize: 50
-                })
-            fk.add(ps)
-            pointSprites[i].push(ps)
-        }
-    }
-    pointSprites.forEach((row, i) => {
-        pointSprites[i].forEach((col, j) => {
-            pointSprites[i][j].position.set(controlPointsPositions[i][j].x, controlPointsPositions[i][j].y, controlPointsPositions[i][j].z)
-        })
-    })
 }
 
 function setGUI() {
@@ -252,6 +182,75 @@ function setGUI() {
 
     GUIPreset = gui.save()
     gui.open()
+}
+
+function initialControlPoints() {
+    for (let i = 0; i < 4; i++) {
+        for (let j = 0; j < 4; j++) {
+            fk.addControlHelper(controlPointsPositions[i][j])
+        }
+    }
+
+    for (let i = 0; i < 4; i++) {
+        controlPointsPositions[i].length = 0
+
+        for (let j = 0; j < 4; j++) {
+            controlPointsPositions[i].push(fk.helperObjects[i * 4 + j].position)
+        }
+    }
+}
+
+function load(new_positions) {
+
+    for (let i = 0; i < 4; i++) {
+        for (let j = 0; j < controlPointsPositions[i].length; j++) {
+            controlPointsPositions[i][j].copy(new_positions[i][j])
+        }
+        updateSurface()
+    }
+}
+
+function updateSurface() {
+    for (const k in surfaces) {
+        const surface = surfaces[k]
+        if (surface != null) {
+            switch (k) {
+                case "bezier": {
+                    surface.updateBezier(controlPointsPositions)
+                    break
+                }
+                case "bSpline": {
+                }
+                    surface.updateBSpline(controlPointsPositions)
+                    break
+            }
+            surface.update()
+        }
+    }
+}
+
+function render() {
+    pointSprites.forEach(row => {
+        row.forEach(ps => {
+            fk.remove(ps)
+        })
+        row.length = 0
+    })
+    for (let i = 0; i < 4; i++) {
+        for (let j = 0; j < 4; j++) {
+            let ps = makeTextSprite("P" + (i + 1).toString() + "," + (j + 1).toString(),
+                {
+                    fontsize: 50
+                })
+            fk.add(ps)
+            pointSprites[i].push(ps)
+        }
+    }
+    pointSprites.forEach((row, i) => {
+        pointSprites[i].forEach((col, j) => {
+            pointSprites[i][j].position.set(controlPointsPositions[i][j].x, controlPointsPositions[i][j].y, controlPointsPositions[i][j].z)
+        })
+    })
 }
 
 function exportPoints() {
